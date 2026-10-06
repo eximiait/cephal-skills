@@ -276,6 +276,87 @@ one_line() {
   return 0
 }
 
+# Lee un JSON de una línea por stdin e imprime el valor de <ruta> (`clave`, `clave.sub`,
+# `0.clave` para el primer elemento de un arreglo). Solo mira las claves del nivel indicado;
+# ignora el contenido de los strings. Si la ruta no existe imprime nada; un null se imprime `null`.
+json_get() {
+  awk -v path="$1" '
+    # Lee un string desde la posición p (comilla de apertura); deja el texto en STR y p tras la comilla de cierre.
+    function parse_string(   c, n) {
+      STR = ""
+      p++
+      while (p <= len) {
+        c = substr(s, p, 1)
+        if (c == "\\") {
+          n = substr(s, p + 1, 1)
+          if (n == "\"" || n == "\\") STR = STR n
+          else STR = STR c n
+          p += 2
+        } else if (c == "\"") {
+          p++
+          return
+        } else {
+          STR = STR c
+          p++
+        }
+      }
+    }
+    BEGIN {
+      nseg = split(path, seg, ".")
+      s = ""
+      while ((getline line) > 0) s = s line
+      gsub(/[\r\n]/, "", s)
+      len = length(s)
+      d = 0
+      p = 1
+      while (p <= len) {
+        c = substr(s, p, 1)
+        if (c == " " || c == "\t") { p++; continue }
+        if (c == "{" || c == "[") {
+          d++
+          typ[d] = (c == "{") ? "o" : "a"
+          onp[d] = (d == 1) || (onp[d - 1] && hit[d - 1])
+          expkey[d] = 1
+          idx[d] = 0
+          hit[d] = (typ[d] == "a" && onp[d] && ("" idx[d]) == seg[d])
+          p++
+        } else if (c == "}" || c == "]") {
+          d--
+          if (d == 0) exit
+          p++
+        } else if (c == ",") {
+          if (typ[d] == "o") { expkey[d] = 1; hit[d] = 0 }
+          else { idx[d]++; hit[d] = (onp[d] && ("" idx[d]) == seg[d]) }
+          p++
+        } else if (c == ":") {
+          p++
+        } else if (c == "\"") {
+          parse_string()
+          if (typ[d] == "o" && expkey[d]) {
+            expkey[d] = 0
+            hit[d] = (onp[d] && STR == seg[d])
+          } else if (hit[d] && d == nseg) {
+            print STR
+            exit
+          }
+        } else {
+          q = p
+          while (q <= len) {
+            c = substr(s, q, 1)
+            if (c == "," || c == "}" || c == "]" || c == " " || c == "\t") break
+            q++
+          }
+          if (hit[d] && d == nseg) {
+            print substr(s, p, q - p)
+            exit
+          }
+          p = q
+        }
+      }
+    }
+  ' </dev/stdin
+}
+
 # Sube x.y.z[-SNAPSHOT] según el tipo (patch|minor|major); conserva -SNAPSHOT.
 semver_bump() {
   sb_v=$1
