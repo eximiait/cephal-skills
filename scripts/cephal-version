@@ -411,6 +411,46 @@ cmd_check() {
   kv check ok
 }
 
+# bump <patch|minor|major|x.y.z>: sube la versión de la app y alinea appVersion; no commitea.
+cmd_bump() {
+  bp_arg=${1:-}
+  [ -n "$bp_arg" ] || die "uso: bump <patch|minor|major|x.y.z>"
+  bp_branch=$(current_branch)
+  bp_dev=$(develop_branch)
+  [ "$bp_branch" = "$bp_dev" ] || die "estás en $bp_branch; el bump se hace en $bp_dev"
+  bp_from=$(get_version) || exit 1
+  if printf '%s\n' "$bp_arg" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?$'; then
+    bp_to=$bp_arg
+  else
+    bp_to=$(semver_bump "$bp_from" "$bp_arg") || exit 1
+  fi
+  set_version "$bp_to"
+  set_chart_app_version "$bp_to"
+  kv from "$bp_from"
+  kv to "$bp_to"
+}
+
+# release-prep [--apply]: informa si la versión tiene -SNAPSHOT; con --apply lo quita y commitea.
+cmd_release_prep() {
+  rp_v=$(get_version) || exit 1
+  case "$rp_v" in
+    *-SNAPSHOT) ;;
+    *)
+      kv snapshot no
+      return 0
+      ;;
+  esac
+  rp_rel=${rp_v%-SNAPSHOT}
+  kv snapshot yes
+  kv release "$rp_rel"
+  if [ "${1:-}" = "--apply" ]; then
+    set_version "$rp_rel"
+    set_chart_app_version "$rp_rel"
+    git commit -q -a -m "Release app $rp_rel" || die "no se pudo crear el commit de release"
+    kv committed yes
+  fi
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
