@@ -47,4 +47,13 @@ assert_eq 1 "$RC" "push rechazado falla"
 assert_eq "" "$(git tag --list 9.9.9)" "push rechazado: no queda el tag local"
 rm -f "$T/origin.git/hooks/pre-receive"
 
+# upstream distinto de origin/<misma rama>: no se crea una rama remota nueva
+git checkout -q -b feature/y --track origin/develop
+run_cv tag-push 7.7.7
+assert_eq 1 "$RC" "upstream distinto de origin/<rama> falla"
+assert_contains "$ERRO" "rastrea origin/develop" "upstream distinto: mensaje"
+assert_eq "" "$(git -C "$T/origin.git" branch --list feature/y)" "upstream distinto: no crea la rama remota"
+assert_eq "" "$(git tag --list 7.7.7)" "upstream distinto: no deja tag local"
+git checkout -q develop
+
 finish

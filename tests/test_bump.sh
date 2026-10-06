@@ -70,4 +70,13 @@ assert_eq 'appVersion: "1.3.1"' "$(appv)" "release-prep: alinea appVersion"
 run_cv release-prep --apply
 assert_eq "snapshot=no" "$OUT" "release-prep sin SNAPSHOT: nada que hacer"
 
+# --apply con cambios ajenos sin commitear: no los arrastra al commit de release
+setup
+echo x >> README.md
+run_cv release-prep --apply
+assert_eq 1 "$RC" "release-prep --apply con árbol sucio falla"
+assert_contains "$ERRO" "cambios sin commitear" "release-prep --apply con árbol sucio: mensaje"
+assert_eq "base" "$(git log -1 --format=%s)" "release-prep --apply con árbol sucio: no commitea"
+assert_eq 1 "$(grep -c '<version>1.3.1-SNAPSHOT</version>' pom.xml)" "release-prep --apply con árbol sucio: no edita el pom"
+
 finish

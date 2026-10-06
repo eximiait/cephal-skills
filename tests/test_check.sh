@@ -61,6 +61,13 @@ assert_eq 1 "$RC" "check: rama sin upstream falla"
 assert_contains "$ERRO" "no tiene upstream" "check: sin upstream, mensaje"
 git checkout -q develop
 
+# upstream distinto de origin/<misma rama>: tag-push empujaría a otra rama
+git checkout -q -b feature/x --track origin/develop
+run_cv check
+assert_eq 1 "$RC" "check: upstream distinto de origin/<rama> falla"
+assert_contains "$ERRO" "rastrea origin/develop" "check: upstream distinto, mensaje"
+git checkout -q develop
+
 # identidad ausente
 git config user.email ""
 run_cv check
