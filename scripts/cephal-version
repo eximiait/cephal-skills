@@ -1,0 +1,33 @@
+#!/bin/sh
+# cephal-version: calcula, valida y escribe versiones y tags de despliegue.
+# Diseño: docs/superpowers/specs/2026-10-05-cephal-versioning-skills-design.md
+set -u
+
+die() {
+  printf 'ERR: %s\n' "$*" >&2
+  exit 1
+}
+
+kv() {
+  printf '%s=%s\n' "$1" "$2"
+}
+
+main() {
+  LANG_OVERRIDE=""
+  if [ "${1:-}" = "--lang" ]; then
+    [ $# -ge 2 ] || die "falta el valor de --lang"
+    LANG_OVERRIDE=$2
+    shift 2
+  fi
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push>"
+  sub=$1
+  shift
+  fn="cmd_$(printf '%s' "$sub" | tr '-' '_')"
+  if type "$fn" >/dev/null 2>&1; then
+    "$fn" "$@"
+  else
+    die "subcomando desconocido: $sub"
+  fi
+}
+
+[ "${CEPHAL_VERSION_SOURCED:-}" = 1 ] || main "$@"
