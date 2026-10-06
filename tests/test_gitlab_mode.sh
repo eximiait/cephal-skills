@@ -41,10 +41,12 @@ assert_eq "gitlab=manual" "$OUT" "origin local: manual"
 assert_eq "" "$(cat "$T/glab.log")" "origin local: no llama a glab"
 
 # mr-link con distintos origin
-for u in https://gitlab.example.com/g/p.git git@gitlab.example.com:g/sub/p.git ssh://git@gitlab.example.com:2222/g/p.git https://gitlab.example.com/g/p; do
+for u in https://gitlab.example.com/g/p.git git@gitlab.example.com:g/sub/p.git ssh://git@gitlab.example.com:2222/g/p.git https://gitlab.example.com/g/p \
+  https://gitlab.example.com/g/a@b.git https://user@gitlab.example.com/g/a@b.git ssh://git@gitlab.example.com:2222/g/a@b.git git@gitlab.example.com:g/a@b.git; do
   git remote set-url origin "$u"
   case "$u" in
     *sub*) path=g/sub/p ;;
+    *a@b*) path=g/a@b ;;
     *) path=g/p ;;
   esac
   run_cv mr-link

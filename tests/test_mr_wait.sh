@@ -39,6 +39,18 @@ assert_contains "$OUT" "timeout=no" "mr-wait ya alcanzado"
 FAST=no; [ $((S1 - S0)) -lt 10 ] && FAST=yes
 assert_eq yes "$FAST" "mr-wait ya alcanzado no duerme el poll de 30s"
 
+# modo pipeline: el MR se cierra o se mergea con el pipeline corriendo → termina enseguida
+for st in closed merged; do
+  views mr_view_running.json
+  sed "s/\"state\":\"opened\"/\"state\":\"$st\"/" "$FX/mr_view_running.json" > "$T/glab/view.1.json"
+  : > "$T/glab.log"
+  CEPHAL_WAIT_STEP_SECONDS=3 run_cv mr-wait 12 pipeline
+  assert_contains "$OUT" "state=$st" "mr-wait pipeline con MR $st: estado"
+  assert_contains "$OUT" "pipeline=running" "mr-wait pipeline con MR $st: pipeline"
+  assert_contains "$OUT" "timeout=no" "mr-wait pipeline con MR $st: timeout=no"
+  assert_eq 1 "$(grep -c "mr view" "$T/glab.log")" "mr-wait pipeline con MR $st: una sola consulta"
+done
+
 # modo merged
 views mr_view_running.json mr_view_merged.json
 run_cv mr-wait 12 merged

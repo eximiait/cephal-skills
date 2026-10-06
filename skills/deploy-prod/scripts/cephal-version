@@ -522,16 +522,17 @@ origin_parts() {
     https://* | http://* | ssh://* | git://*)
       op_scheme=${op_url%%://*}
       op_rest=${op_url#*://}
-      op_rest=${op_rest#*@}
       op_host=${op_rest%%/*}
       op_path=${op_rest#*/}
+      [ "$op_path" != "$op_rest" ] || return 1
+      # El usuario se quita solo de la autoridad (antes de la primera /): la ruta puede tener @.
+      op_host=${op_host##*@}
       case "$op_host" in
         *:*)
           case "$op_scheme" in https | http) op_port=${op_host#*:} ;; esac
           op_host=${op_host%%:*}
           ;;
       esac
-      [ "$op_path" != "$op_rest" ] || return 1
       ;;
     *@*:*)
       op_rest=${op_url#*@}
@@ -759,7 +760,8 @@ cmd_mr_status() {
   mr_status "$1"
 }
 
-# mr-wait <iid> <pipeline|merged>: consulta cada CEPHAL_POLL_SECONDS hasta que se cumple la condicion o vence CEPHAL_WAIT_STEP_SECONDS.
+# mr-wait <iid> <pipeline|merged>: consulta cada CEPHAL_POLL_SECONDS hasta que se cumple la condicion
+# (o el MR se cierra o mergea) o vence CEPHAL_WAIT_STEP_SECONDS.
 cmd_mr_wait() {
   [ $# -ge 2 ] || die "uso: mr-wait <iid> <pipeline|merged>"
   mw_iid=$1
@@ -778,12 +780,10 @@ cmd_mr_wait() {
     mw_out=$(mr_status "$mw_iid") || exit 1
     mw_state=$(printf '%s\n' "$mw_out" | sed -n 's/^state=//p')
     mw_pipe=$(printf '%s\n' "$mw_out" | sed -n 's/^pipeline=//p')
+    # Un MR cerrado o mergeado termina la espera en ambos modos; en pipeline, también cuando deja de correr.
     mw_done=no
-    if [ "$mw_mode" = pipeline ]; then
-      [ "$mw_pipe" != running ] && mw_done=yes
-    else
-      case "$mw_state" in merged | closed) mw_done=yes ;; esac
-    fi
+    case "$mw_state" in merged | closed) mw_done=yes ;; esac
+    if [ "$mw_mode" = pipeline ] && [ "$mw_pipe" != running ]; then mw_done=yes; fi
     if [ "$mw_done" = yes ]; then
       printf '%s\n' "$mw_out"
       kv timeout no
