@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-06
+
+- `deploy-prod`: la versión de prod se decide en la rama de desarrollo y viaja en `Chart.yaml` por el MR; en `main` el tag es exactamente esa versión, así el chart y el tag siempre coinciden. Si `Chart.yaml` ya tiene una versión liberable, se usa sin preguntar.
+- Nuevo subcomando `chart-prep [--apply] [tipo]`: calcula la versión del chart (RC abierto o tipo) y, con `--apply`, la escribe y commitea `Chart a x.y.z` (nunca en `main`).
+- `next-tag prod`: con `Chart.yaml`, el tag es su `version` validada (x.y.z, mayor que el último final y sin tag existente); sin `Chart.yaml`, como antes.
+
 ## 0.2.0 - 2026-10-06
 
 - `deploy-prod`: el tag de prod `x.y.z` solo sale desde la rama principal (`MAIN_BRANCH`, por defecto `main`). Desde la rama de desarrollo integra `develop` en `main` con un MR (`glab`) y, con el pipeline en verde, lo mergea antes de taguear.

@@ -38,9 +38,9 @@ Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` 
 
 ## Flujo de prod
 
-1. `deploy-prod` desde `develop`: crea el MR `develop` → `main`.
+1. `deploy-prod` desde `develop`: decide la versión de prod (si `Chart.yaml` ya tiene una liberable la usa; si no, la calcula), la escribe en `Chart.yaml` con un commit `Chart a x.y.z` y crea el MR `develop` → `main`.
 2. Con el CI del MR en verde, se mergea (sin squash y sin borrar `develop`).
-3. Se crea y pushea el tag `x.y.z` en `main`, sobre el mismo commit que `origin/main`.
+3. Se crea y pushea en `main` el tag con la versión de `Chart.yaml`, sobre el mismo commit que `origin/main`: el chart de `main` y el tag siempre coinciden. Sin `Chart.yaml`, la versión se calcula en `main` como antes.
 
 Modo manual (sin `glab` o sin sesión iniciada): `deploy-prod` indica los pasos del MR para que los haga el dev (te da el link para abrirlo); cuando avisás que está mergeado, sigue con el tag. Si `glab` falla en pleno MR, `deploy-prod` sigue en modo manual desde ese punto con los mismos pasos (sin tildar `Delete source branch` ni `Squash`); `bump-app-version` y `deploy-test` nunca necesitan `glab`.
 

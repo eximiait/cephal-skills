@@ -62,7 +62,7 @@ sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync: restaura las
 
 # manifiestos
 assert_eq yes "$(grep -q '"name": "cephal"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: name"
-assert_eq yes "$(grep -q '"version": "0.2.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.2.0"
+assert_eq yes "$(grep -q '"version": "0.3.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.3.0"
 assert_eq yes "$(grep -q '"name": "cephal-skills"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: name"
 assert_eq yes "$(grep -q '"source": "./"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: source"
 if command -v node >/dev/null 2>&1; then
@@ -75,5 +75,8 @@ fi
 # Preparar se puede repetir: la skill no depende de que el agente recuerde si ya lo corrió
 assert_eq no "$(grep -qF 'si aún no lo hiciste' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: Preparar no depende de recordar el estado"
 assert_eq yes "$(grep -qF 'repetirlo es seguro' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: aclara que Preparar se puede repetir"
+
+assert_eq yes "$(grep -qF 'chart-prep' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: decide la versión del chart con chart-prep"
+assert_eq yes "$(grep -qF 'Versión a liberar' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: informa la versión a liberar"
 
 finish
