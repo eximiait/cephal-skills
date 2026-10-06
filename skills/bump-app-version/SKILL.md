@@ -10,12 +10,12 @@ description: Sube la versión de la app (pom, gradle, npm o pnpm) y alinea appVe
 `powershell -NoProfile -ExecutionPolicy Bypass -File "<esta carpeta>/scripts/cephal-version.ps1"`.
 Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaje y anteponé `--lang <maven|gradle|npm|pnpm>` a cada subcomando.
 Si `bump` o `release-prep --apply` traen `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
-Mostrá solo lo imprescindible.
+Al dev mostrale solo las preguntas, una línea por resultado y, si un comando trae líneas `diff --git`, esas líneas tal cual en un bloque ```diff (sin resumirlas ni explicarlas).
 
 1. `CV context`. Si falla, mostrá el error y terminá.
 2. Si `branch` es distinto de `develop_branch`: `Estás en <branch>; el bump se hace en <develop_branch>.` y terminá.
 3. Preguntá: `¿patch, minor o major? (versión actual: <version>)`.
-4. `CV bump <tipo>`. Mostrá `from → to` y `git diff --stat`.
+4. `CV bump <tipo>`. Mostrá la diff y `<from> → <to>`.
 5. Cerrá con una línea: `Listo. Commiteá los cambios.`
 
 No commitees ni pushees: eso lo decide el dev.

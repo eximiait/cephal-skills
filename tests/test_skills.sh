@@ -83,4 +83,9 @@ assert_eq yes "$(grep -qF -- '- `mr_iid`: *Preparar*' skills/deploy-prod/SKILL.m
 assert_eq yes "$(grep -qF 'volvé a `develop_branch`' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: salida cuando la versión del chart no es liberable en main"
 assert_eq no "$(grep -qF 'Si una salida trae `chart=skipped`' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: el aviso de appVersion no aplica a chart-prep"
 
+for s in $SKILLS; do
+  assert_eq yes "$(grep -qF 'bloque ```diff' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: muestra la diff en un bloque diff"
+  assert_eq yes "$(grep -qF 'tal cual' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: la diff va tal cual"
+done
+
 finish

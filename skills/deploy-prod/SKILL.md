@@ -10,7 +10,7 @@ description: Libera a prod. Integra develop en main por MR y pushea el tag x.y.z
 `powershell -NoProfile -ExecutionPolicy Bypass -File "<esta carpeta>/scripts/cephal-version.ps1"`.
 Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaje y anteponé `--lang <maven|gradle|npm|pnpm>` a cada subcomando.
 Si `bump` o `release-prep --apply` traen `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
-Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR ni tag.
+Al dev mostrale solo las preguntas, una línea por resultado y, si un comando trae líneas `diff --git`, esas líneas tal cual en un bloque ```diff (sin resumirlas ni explicarlas). Cada corrida retoma donde quedó; no duplica MR ni tag.
 
 1. `CV context`; si falla, mostrá el error y terminá. Si `branch` no es `develop_branch` ni `main_branch`, decilo y terminá.
 2. `CV release-target`. Si falla con `falta integrar el MR`, develop tiene cambios sin integrar: seguí en el paso 3 (salvo tras el aviso de merge del modo manual: ver *Manual*). Con otro error, mostralo y terminá (si dice que el checkout quedó en `main_branch`, aclaralo). Si termina bien, seguí en el paso 4.

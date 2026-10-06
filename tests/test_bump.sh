@@ -12,13 +12,14 @@ appVersion: "1.3.1-SNAPSHOT"'
   git push -q
 }
 appv() { grep '^appVersion' chart/Chart.yaml; }
+kvonly() { printf '%s\n' "$OUT" | grep -E '^[a-z_]+='; }
 
 # bump patch
 setup
 BEFORE=$(git rev-list --count HEAD)
 run_cv bump patch
 assert_eq "from=1.3.1-SNAPSHOT
-to=1.3.2-SNAPSHOT" "$OUT" "bump patch: salida"
+to=1.3.2-SNAPSHOT" "$(kvonly)" "bump patch: salida"
 assert_eq 'appVersion: "1.3.2-SNAPSHOT"' "$(appv)" "bump: alinea appVersion"
 assert_eq 1 "$(grep -c '<version>1.3.2-SNAPSHOT</version>' pom.xml)" "bump: edita el pom"
 assert_eq " M chart/Chart.yaml
@@ -29,7 +30,7 @@ assert_eq "$BEFORE" "$(git rev-list --count HEAD)" "bump: no crea commits"
 setup
 run_cv bump 3.0.0
 assert_eq "from=1.3.1-SNAPSHOT
-to=3.0.0" "$OUT" "bump explícito"
+to=3.0.0" "$(kvonly)" "bump explícito"
 run_cv bump huge
 assert_eq 1 "$RC" "bump con tipo inválido falla"
 

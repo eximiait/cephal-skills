@@ -95,6 +95,22 @@ rewrite() {
   fi
 }
 
+# Diff en texto plano y formato fijo para mostrar al dev: sin color ni opciones de su configuración que la alteren.
+show_diff() {
+  git -c color.ui=never -c color.diff=never -c diff.mnemonicPrefix=false -c diff.noprefix=false -c core.quotepath=off \
+    diff --no-color --no-ext-diff --no-renames -U1 "$@"
+}
+
+# Archivo que define la versión de la app según el lenguaje.
+version_file() {
+  vf_lang=$(detect_lang) || return 1
+  case "$vf_lang" in
+    maven) printf 'pom.xml\n' ;;
+    gradle) gradle_file ;;
+    npm | pnpm) printf 'package.json\n' ;;
+  esac
+}
+
 # Maven. $1 = etiqueta objetivo ("version" o el nombre de una propiedad); $2 = modo (get|set); $3 = nueva versión.
 # Con get imprime el valor; con set imprime el archivo reescrito. Sale con 3 si no encuentra la etiqueta.
 maven_tag() {
@@ -701,6 +717,7 @@ cmd_bump() {
   set_chart_app_version "$bp_to"
   kv from "$bp_from"
   kv to "$bp_to"
+  show_diff -- "$(version_file)" "$(chart_dir)/Chart.yaml"
 }
 
 # release-prep [--apply]: informa si la versión tiene -SNAPSHOT; con --apply lo quita y commitea.
@@ -723,6 +740,7 @@ cmd_release_prep() {
     set_chart_app_version "$rp_rel"
     git commit -q -a -m "Release app $rp_rel" || die "no se pudo crear el commit de release"
     kv committed yes
+    show_diff HEAD^ HEAD
   fi
 }
 
@@ -762,6 +780,7 @@ cmd_chart_prep() {
     chart_version_set "$cp_new"
     git commit -q -a -m "Chart a $cp_new" || die "no se pudo crear el commit del chart"
     kv committed yes
+    show_diff HEAD^ HEAD
   fi
 }
 
