@@ -731,6 +731,50 @@ cmd_mr_status() {
   mr_status "$1"
 }
 
+# mr-wait <iid> <pipeline|merged>: consulta cada CEPHAL_POLL_SECONDS hasta que se cumple la condicion o vence CEPHAL_WAIT_STEP_SECONDS.
+cmd_mr_wait() {
+  [ $# -ge 2 ] || die "uso: mr-wait <iid> <pipeline|merged>"
+  mw_iid=$1
+  mw_mode=$2
+  case "$mw_mode" in
+    pipeline | merged) ;;
+    *) die "modo inválido: $mw_mode (usar pipeline o merged)" ;;
+  esac
+  mw_poll=${CEPHAL_POLL_SECONDS:-30}
+  mw_step=${CEPHAL_WAIT_STEP_SECONDS:-100}
+  mw_start=$(date +%s)
+  while :; do
+    mw_out=$(mr_status "$mw_iid") || exit 1
+    mw_state=$(printf '%s\n' "$mw_out" | sed -n 's/^state=//p')
+    mw_pipe=$(printf '%s\n' "$mw_out" | sed -n 's/^pipeline=//p')
+    mw_done=no
+    if [ "$mw_mode" = pipeline ]; then
+      [ "$mw_pipe" != running ] && mw_done=yes
+    else
+      case "$mw_state" in merged | closed) mw_done=yes ;; esac
+    fi
+    if [ "$mw_done" = yes ]; then
+      printf '%s\n' "$mw_out"
+      kv timeout no
+      return 0
+    fi
+    mw_now=$(date +%s)
+    if [ $((mw_now - mw_start)) -ge "$mw_step" ]; then
+      printf '%s\n' "$mw_out"
+      kv timeout yes
+      return 0
+    fi
+    [ "$mw_poll" -gt 0 ] && sleep "$mw_poll"
+  done
+}
+
+# mr-merge <iid> <sha>: merge con merge commit, solo si la cabeza del MR sigue siendo <sha>.
+cmd_mr_merge() {
+  [ $# -ge 2 ] || die "uso: mr-merge <iid> <sha>"
+  mm_out=$(glab mr merge "$1" --sha "$2" --auto-merge=false --yes 2>&1) || die "no se pudo mergear: $mm_out"
+  kv merged yes
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -738,7 +782,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
