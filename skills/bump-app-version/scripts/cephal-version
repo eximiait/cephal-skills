@@ -779,6 +779,26 @@ cmd_mr_merge() {
   kv merged yes
 }
 
+# release-target: deja el checkout en <main> actualizado con origin (fast-forward) tras integrar el MR.
+cmd_release_target() {
+  rt_dev=$(develop_branch)
+  rt_main=$(main_branch)
+  rt_err=$(git fetch --tags origin 2>&1) || die "no se pudo consultar origin: $rt_err"
+  git merge-base --is-ancestor "origin/$rt_dev" "origin/$rt_main" 2>/dev/null || die "$rt_main no contiene $rt_dev: falta integrar el MR"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  if git rev-parse -q --verify "refs/heads/$rt_main" >/dev/null; then
+    rt_err=$(git checkout "$rt_main" 2>&1) || die "no se pudo pasar a $rt_main: $rt_err"
+  else
+    rt_err=$(git checkout -b "$rt_main" --track "origin/$rt_main" 2>&1) || die "no se pudo crear $rt_main desde origin/$rt_main: $rt_err"
+  fi
+  rt_err=$(git pull --ff-only 2>&1) || die "no se pudo actualizar $rt_main: $rt_err"
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$rt_main")" ] || die "$rt_main tiene commits locales sin pushear; no coincide con origin/$rt_main"
+  kv branch "$rt_main"
+  kv head "$(git rev-parse --short HEAD)"
+  rt_tag=$(git tag --points-at HEAD | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | max_semver)
+  if [ -n "$rt_tag" ]; then kv tagged "$rt_tag"; fi
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -786,7 +806,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge|release-target>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
