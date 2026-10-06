@@ -221,8 +221,9 @@ get_version() {
       ;;
     npm | pnpm) gv=$(npm_version get "" package.json) ;;
   esac
+  # Conjuntos explícitos: con rangos (0-9, a-z) algunos sh comparan por collation según el locale.
   case "$gv" in
-    '' | *[!0-9A-Za-z.+_-]* | [!0-9A-Za-z]*) die "versión no resoluble, definila a mano ($gv_lang)" ;;
+    '' | *[!0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.+_-]* | [!0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]*) die "versión no resoluble, definila a mano ($gv_lang)" ;;
   esac
   printf '%s\n' "$gv"
 }
@@ -735,7 +736,8 @@ require_iid() {
 }
 
 require_sha() {
-  case "$1" in '' | *[!0-9a-f]*) die "sha inválido: $1" ;; esac
+  # Conjunto explícito: con el rango a-f, bash 3.2 en UTF-8 (macOS) también acepta mayúsculas.
+  case "$1" in '' | *[!0123456789abcdef]*) die "sha inválido: $1" ;; esac
   [ "${#1}" -ge 7 ] && [ "${#1}" -le 40 ] || die "sha inválido: $1"
 }
 
