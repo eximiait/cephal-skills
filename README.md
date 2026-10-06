@@ -42,7 +42,7 @@ Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` 
 2. Con el CI del MR en verde, se mergea (sin squash y sin borrar `develop`).
 3. Se crea y pushea el tag `x.y.z` en `main`, sobre el mismo commit que `origin/main`.
 
-Modo manual (sin `glab` o sin sesión iniciada): `deploy-prod` indica los pasos del MR para que los haga el dev (te da el link para abrirlo); cuando avisás que está mergeado, sigue con el tag.
+Modo manual (sin `glab` o sin sesión iniciada): `deploy-prod` indica los pasos del MR para que los haga el dev (te da el link para abrirlo); cuando avisás que está mergeado, sigue con el tag. Si `glab` falla en pleno MR, `deploy-prod` sigue en modo manual desde ese punto con los mismos pasos (sin tildar `Delete source branch` ni `Squash`); `bump-app-version` y `deploy-test` nunca necesitan `glab`.
 
 Mientras corre el pipeline del MR, la skill espera hasta `CEPHAL_WAIT_MINUTES` minutos (por defecto 20); si no termina, volvé a correr `deploy-prod`: retoma donde quedó.
 

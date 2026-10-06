@@ -31,6 +31,15 @@ done
 for k in mr-find mr-create mr-wait mr-merge mr-link release-target gitlab-mode push-branch CEPHAL_WAIT_MINUTES; do
   assert_eq yes "$(grep -qF -- "$k" skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: menciona $k"
 done
+# sin glab: caída a manual, pasos manuales y skills que no lo necesitan
+assert_eq yes "$(grep -qF 'seguí en modo manual' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: si falla un mr-*, sigue en modo manual"
+for k in 'Delete source branch' 'Squash' 'release-target'; do
+  assert_eq yes "$(grep -qF -- "$k" skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: pasos manuales mencionan $k"
+done
+for s in bump-app-version deploy-test; do
+  assert_eq "" "$(grep -E 'glab|mr-' "skills/$s/SKILL.md")" "$s: no usa glab ni mr-*"
+done
+assert_eq yes "$(grep -qF 'sigue en modo manual' README.md && echo yes || echo no)" "README: caída a modo manual si glab falla"
 assert_eq yes "$(grep -qF 'main_branch' skills/deploy-test/SKILL.md && echo yes || echo no)" "deploy-test: no crea RC en main_branch"
 for s in $SKILLS; do
   assert_eq yes "$(grep -qF 'sobrescribas' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: tags inmutables"
