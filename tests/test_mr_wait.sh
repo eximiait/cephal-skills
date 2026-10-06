@@ -36,7 +36,8 @@ S0=$(date +%s)
 CEPHAL_POLL_SECONDS=30 run_cv mr-wait 12 pipeline
 S1=$(date +%s)
 assert_contains "$OUT" "timeout=no" "mr-wait ya alcanzado"
-[ $((S1 - S0)) -lt 10 ] && assert_eq 1 1 "no duerme si ya esta" || assert_eq "rapido" "lento" "no duerme si ya esta"
+FAST=no; [ $((S1 - S0)) -lt 10 ] && FAST=yes
+assert_eq yes "$FAST" "mr-wait ya alcanzado no duerme el poll de 30s"
 
 # modo merged
 views mr_view_running.json mr_view_merged.json
@@ -48,6 +49,16 @@ views mr_view_closed.json
 run_cv mr-wait 12 merged
 assert_contains "$OUT" "state=closed" "mr-wait closed"
 assert_contains "$OUT" "timeout=no" "mr-wait closed timeout=no"
+
+# variables de espera invalidas
+for v in CEPHAL_POLL_SECONDS CEPHAL_WAIT_STEP_SECONDS; do
+  for bad in abc -1 1.5; do
+    views mr_view_running.json
+    env "$v=$bad" CEPHAL_VERSION_SOURCED="" sh "$CV" mr-wait 12 pipeline >/dev/null 2>"$T/err"
+    assert_eq 1 "$?" "$v=[$bad] falla"
+    assert_contains "$(cat "$T/err")" "$v debe ser un entero" "$v=[$bad] nombra la variable"
+  done
+done
 
 # argumentos
 run_cv mr-wait

@@ -742,7 +742,10 @@ cmd_mr_wait() {
   esac
   mw_poll=${CEPHAL_POLL_SECONDS:-30}
   mw_step=${CEPHAL_WAIT_STEP_SECONDS:-100}
-  mw_start=$(date +%s)
+  case "$mw_poll" in '' | *[!0-9]*) die "CEPHAL_POLL_SECONDS debe ser un entero >= 0: $mw_poll" ;; esac
+  case "$mw_step" in '' | *[!0-9]*) die "CEPHAL_WAIT_STEP_SECONDS debe ser un entero >= 0: $mw_step" ;; esac
+  mw_start=$(date +%s 2>/dev/null)
+  case "$mw_start" in '' | *[!0-9]*) die "no se pudo leer la hora del sistema" ;; esac
   while :; do
     mw_out=$(mr_status "$mw_iid") || exit 1
     mw_state=$(printf '%s\n' "$mw_out" | sed -n 's/^state=//p')
@@ -758,7 +761,8 @@ cmd_mr_wait() {
       kv timeout no
       return 0
     fi
-    mw_now=$(date +%s)
+    mw_now=$(date +%s 2>/dev/null)
+    case "$mw_now" in '' | *[!0-9]*) die "no se pudo leer la hora del sistema" ;; esac
     if [ $((mw_now - mw_start)) -ge "$mw_step" ]; then
       printf '%s\n' "$mw_out"
       kv timeout yes
