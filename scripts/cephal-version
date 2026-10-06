@@ -12,6 +12,66 @@ kv() {
   printf '%s=%s\n' "$1" "$2"
 }
 
+# Valor de una variable del bloque `variables:` de primer nivel del .gitlab-ci.yml raíz.
+ci_var() {
+  [ -f .gitlab-ci.yml ] || return 0
+  awk -v key="$1" '
+    /^variables:[[:space:]]*(#.*)?$/ { inv = 1; next }
+    /^[^[:space:]#]/ { inv = 0 }
+    inv && $0 ~ ("^[[:space:]]+" key ":") {
+      v = $0
+      sub("^[[:space:]]+" key ":[[:space:]]*", "", v)
+      sub(/[[:space:]]+#.*$/, "", v)
+      sub(/[[:space:]]+$/, "", v)
+      f = substr(v, 1, 1)
+      if ((f == "\"" || f == sprintf("%c", 39)) && substr(v, length(v), 1) == f) v = substr(v, 2, length(v) - 2)
+      print v
+      exit
+    }
+  ' .gitlab-ci.yml
+}
+
+develop_branch() {
+  v=$(ci_var DEVELOP_BRANCH)
+  printf '%s\n' "${v:-develop}"
+}
+
+chart_dir() {
+  v=$(ci_var HELM_BASEDIR)
+  printf '%s\n' "${v:-chart}"
+}
+
+# Lenguaje del proyecto: maven|gradle|npm|pnpm. Nota: `die` dentro de $(...) solo sale del subshell;
+# quien la invoque así debe propagar el código de salida.
+detect_lang() {
+  if [ -n "${LANG_OVERRIDE:-}" ]; then
+    case "$LANG_OVERRIDE" in
+      maven | gradle | npm | pnpm)
+        printf '%s\n' "$LANG_OVERRIDE"
+        return 0
+        ;;
+      *) die "lenguaje no soportado: $LANG_OVERRIDE" ;;
+    esac
+  fi
+  found=""
+  n=0
+  if [ -f pom.xml ]; then
+    found=maven
+    n=$((n + 1))
+  fi
+  if [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+    found=gradle
+    n=$((n + 1))
+  fi
+  if [ -f package.json ]; then
+    if [ -f pnpm-lock.yaml ]; then found=pnpm; else found=npm; fi
+    n=$((n + 1))
+  fi
+  [ "$n" -ge 1 ] || die "lenguaje no detectado"
+  [ "$n" -eq 1 ] || die "más de un lenguaje, usá --lang"
+  printf '%s\n' "$found"
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
