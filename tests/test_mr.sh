@@ -44,8 +44,14 @@ status_of mr_view_running.json
 assert_eq "state=opened
 pipeline=running
 sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-url=https://gitlab.example.com/g/p/-/merge_requests/12" "$OUT" "mr-status running"
+url=https://gitlab.example.com/g/p/-/merge_requests/12
+remove_source=false" "$OUT" "mr-status running"
 assert_contains "$(grep 'mr view' "$T/glab.log")" "mr view 12 -F json" "mr-status argumentos"
+# sha de primer nivel, no el de head_pipeline ni el de pipeline (el fixture trae los tres distintos)
+assert_eq "sha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "$(printf '%s\n' "$OUT" | grep '^sha=')" "sha de primer nivel"
+assert_contains "$(cat "$FX/mr_view_running.json")" '"head_pipeline":{"id":201,"iid":39,"project_id":55,"status":"running","source":"push","ref":"develop","name":null,"sha":"3333333333333333333333333333333333333333"' "fixture: head_pipeline con otro sha"
+status_of mr_view_remove_source.json
+assert_contains "$OUT" "remove_source=true" "mr-status: MR que borra la rama de origen"
 status_of mr_view_success.json
 assert_contains "$OUT" "pipeline=success" "mr-status success"
 status_of mr_view_failed.json
@@ -57,10 +63,16 @@ assert_contains "$OUT" "state=merged" "mr-status merged"
 status_of mr_view_closed.json
 assert_contains "$OUT" "state=closed" "mr-status closed"
 assert_contains "$OUT" "pipeline=canceled" "mr-status canceled tal cual"
+assert_contains "$OUT" "remove_source=false" "mr-status closed: remove_source=false"
 
-# sha de primer nivel, no el de head_pipeline
-S=$(grep -o '"sha":"[0-9a-f]*"' "$FX/mr_view_running.json" | sort -u | wc -l)
-if [ "$S" -gt 1 ]; then assert_contains "$OUT" "sha=aaaa" "sha de primer nivel"; fi
+# iid inválido: falla sin llamar a glab
+: > "$T/glab.log"
+for bad in abc 12x "-1" "12 13"; do
+  run_cv mr-status "$bad"
+  assert_eq 1 "$RC" "mr-status iid [$bad] falla"
+  assert_contains "$ERRO" "iid inválido" "mr-status iid [$bad]: mensaje"
+done
+assert_eq "" "$(cat "$T/glab.log")" "mr-status iid inválido: no llama a glab"
 
 # pipeline_state
 CEPHAL_VERSION_SOURCED=1 . "$CV"

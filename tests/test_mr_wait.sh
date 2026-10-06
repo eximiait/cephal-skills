@@ -70,18 +70,43 @@ assert_eq 1 "$RC" "mr-wait modo invalido falla"
 assert_contains "$ERRO" "ERR:" "mr-wait modo invalido: ERR"
 
 # mr-merge
+SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+views mr_view_success.json
 : > "$T/glab.log"
-run_cv mr-merge 12 abc123
+run_cv mr-merge 12 "$SHA"
 assert_eq "merged=yes" "$OUT" "mr-merge ok"
+assert_contains "$(cat "$T/glab.log")" "mr view 12 -F json" "mr-merge consulta el MR antes de mergear"
 ML=$(grep 'mr merge' "$T/glab.log")
-assert_contains "$ML" "mr merge 12 --sha abc123 --auto-merge=false --yes" "mr-merge comando exacto"
-for bad in --squash " -d" --remove-source-branch; do
+assert_eq "mr merge 12 --sha $SHA --remove-source-branch=false --auto-merge=false --yes" "$ML" "mr-merge comando exacto"
+for bad in --squash " -d" --force --remove-source-branch=true; do
   case "$ML" in *"$bad"*) assert_eq "sin $bad" "con $bad" "mr-merge no usa $bad" ;; *) assert_eq 1 1 "mr-merge no usa $bad" ;; esac
 done
 
+# MR con 'Delete source branch' activado: no se mergea
+views mr_view_remove_source.json
+: > "$T/glab.log"
+run_cv mr-merge 12 "$SHA"
+assert_eq 1 "$RC" "mr-merge con force_remove_source_branch falla"
+assert_contains "$ERRO" "el MR borraría develop al mergear: desactivá 'Delete source branch' en el MR" "mr-merge con force_remove_source_branch: mensaje"
+assert_eq "" "$(grep 'mr merge' "$T/glab.log")" "mr-merge con force_remove_source_branch: no llama a glab mr merge"
+
+# iid y sha inválidos: falla sin llamar a glab
+views mr_view_success.json
+: > "$T/glab.log"
+for args in "x1 $SHA" "12 abc123" "12 AAAAAAAAAAAA" "12 ${SHA}a" "12 abc123z"; do
+  # shellcheck disable=SC2086
+  run_cv mr-merge $args
+  assert_eq 1 "$RC" "mr-merge [$args] falla"
+  assert_contains "$ERRO" "inválido" "mr-merge [$args]: mensaje"
+done
+assert_eq "" "$(cat "$T/glab.log")" "mr-merge con argumentos inválidos: no llama a glab"
+run_cv mr-wait x1 pipeline
+assert_eq 1 "$RC" "mr-wait iid inválido falla"
+assert_contains "$ERRO" "iid inválido" "mr-wait iid inválido: mensaje"
+
 printf 'approvals required\n' > "$T/glab/merge.out"
 printf '1\n' > "$T/glab/merge.rc"
-run_cv mr-merge 12 abc123
+run_cv mr-merge 12 "$SHA"
 assert_eq 1 "$RC" "mr-merge falla"
 assert_contains "$ERRO" "ERR:" "mr-merge fallo: ERR"
 assert_contains "$ERRO" "approvals required" "mr-merge fallo: salida de glab"

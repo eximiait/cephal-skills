@@ -728,13 +728,30 @@ cmd_mr_create() {
   kv mr_url "$mc_url"
 }
 
-# mr_status <iid>: imprime state, pipeline, sha y url del MR (los usan mr-status y mr-wait).
+# El iid de un MR es un entero; el sha, hexadecimal de 7 a 40 caracteres.
+require_iid() {
+  case "$1" in '' | *[!0-9]*) die "iid inválido: $1" ;; esac
+}
+
+require_sha() {
+  case "$1" in '' | *[!0-9a-f]*) die "sha inválido: $1" ;; esac
+  [ "${#1}" -ge 7 ] && [ "${#1}" -le 40 ] || die "sha inválido: $1"
+}
+
+# mr_status <iid>: imprime state, pipeline, sha, url y remove_source del MR (los usan mr-status, mr-wait y mr-merge).
 mr_status() {
+  require_iid "$1"
   ms_out=$(glab mr view "$1" -F json 2>&1) || die "glab mr view falló: $ms_out"
   kv state "$(printf '%s\n' "$ms_out" | json_get state)"
   kv pipeline "$(pipeline_state "$(printf '%s\n' "$ms_out" | json_get head_pipeline.status)")"
   kv sha "$(printf '%s\n' "$ms_out" | json_get sha)"
   kv url "$(printf '%s\n' "$ms_out" | json_get web_url)"
+  # 'Delete source branch' del MR: con true, mergear borraría la rama de desarrollo.
+  if [ "$(printf '%s\n' "$ms_out" | json_get force_remove_source_branch)" = true ]; then
+    kv remove_source true
+  else
+    kv remove_source false
+  fi
 }
 
 cmd_mr_status() {
@@ -783,10 +800,16 @@ cmd_mr_wait() {
   done
 }
 
-# mr-merge <iid> <sha>: merge con merge commit, solo si la cabeza del MR sigue siendo <sha>.
+# mr-merge <iid> <sha>: merge con merge commit, solo si la cabeza del MR sigue siendo <sha>;
+# nunca borra la rama de desarrollo (flag explícito y rechazo si el MR la borraría).
 cmd_mr_merge() {
   [ $# -ge 2 ] || die "uso: mr-merge <iid> <sha>"
-  mm_out=$(glab mr merge "$1" --sha "$2" --auto-merge=false --yes 2>&1) || die "no se pudo mergear: $mm_out"
+  require_iid "$1"
+  require_sha "$2"
+  mm_st=$(mr_status "$1") || exit 1
+  # remove_source es la última línea de mr_status.
+  [ "${mm_st##*remove_source=}" != true ] || die "el MR borraría $(develop_branch) al mergear: desactivá 'Delete source branch' en el MR"
+  mm_out=$(glab mr merge "$1" --sha "$2" --remove-source-branch=false --auto-merge=false --yes 2>&1) || die "no se pudo mergear: $mm_out"
   kv merged yes
 }
 
