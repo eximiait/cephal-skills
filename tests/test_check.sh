@@ -69,7 +69,7 @@ assert_contains "$ERRO" "identidad git" "check: sin identidad, mensaje"
 git config user.email "dev@test"
 
 # fuera de un repo
-cd "$(mktemp -d)"
+cd "$(mktemp -d)" || exit 1
 run_cv context
 assert_eq 1 "$RC" "fuera de un repo: falla"
 assert_contains "$ERRO" "no es un repositorio git" "fuera de un repo: mensaje"
