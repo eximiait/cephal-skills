@@ -685,6 +685,52 @@ cmd_mr_link() {
   kv mr_link "$ml_web/-/merge_requests/new?merge_request[source_branch]=$(develop_branch)&merge_request[target_branch]=$(main_branch)"
 }
 
+# Estado del pipeline de GitLab para el flujo: los intermedios se informan como `running`.
+pipeline_state() {
+  case "$1" in
+    created | waiting_for_resource | preparing | pending | running | scheduled) printf 'running\n' ;;
+    '' | null) printf 'none\n' ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+# mr-find: MR abierto <develop> → <main>.
+cmd_mr_find() {
+  mf_out=$(glab mr list -s "$(develop_branch)" -t "$(main_branch)" -F json 2>&1) || die "glab mr list falló: $mf_out"
+  mf_iid=$(printf '%s\n' "$mf_out" | json_get 0.iid)
+  if [ -z "$mf_iid" ] || [ "$mf_iid" = null ]; then
+    kv mr none
+    return 0
+  fi
+  kv mr_iid "$mf_iid"
+  kv mr_url "$(printf '%s\n' "$mf_out" | json_get 0.web_url)"
+}
+
+# mr-create: crea el MR <develop> → <main> (merge commit, sin borrar la rama de desarrollo).
+cmd_mr_create() {
+  mc_dev=$(develop_branch)
+  mc_main=$(main_branch)
+  mc_out=$(glab mr create -s "$mc_dev" -b "$mc_main" -t "Release $mc_dev → $mc_main" -d "" --remove-source-branch=false --squash-before-merge=false --yes 2>&1) || die "glab mr create falló: $mc_out"
+  mc_url=$(printf '%s\n' "$mc_out" | grep -Eo 'https?://[^[:space:]]+/-/merge_requests/[0-9]+' | tail -n 1)
+  [ -n "$mc_url" ] || die "glab no devolvió la URL del MR: $mc_out"
+  kv mr_iid "${mc_url##*/}"
+  kv mr_url "$mc_url"
+}
+
+# mr_status <iid>: imprime state, pipeline, sha y url del MR (los usan mr-status y mr-wait).
+mr_status() {
+  ms_out=$(glab mr view "$1" -F json 2>&1) || die "glab mr view falló: $ms_out"
+  kv state "$(printf '%s\n' "$ms_out" | json_get state)"
+  kv pipeline "$(pipeline_state "$(printf '%s\n' "$ms_out" | json_get head_pipeline.status)")"
+  kv sha "$(printf '%s\n' "$ms_out" | json_get sha)"
+  kv url "$(printf '%s\n' "$ms_out" | json_get web_url)"
+}
+
+cmd_mr_status() {
+  [ -n "${1:-}" ] || die "uso: mr-status <iid>"
+  mr_status "$1"
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -692,7 +738,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
