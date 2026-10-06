@@ -262,6 +262,64 @@ chart_app_version() {
   ' "$2"
 }
 
+# version de primer nivel de Chart.yaml, sin comillas (vacío si falta la línea). Retorna 1 sin Chart.yaml.
+chart_version_get() {
+  cg_file="$(chart_dir)/Chart.yaml"
+  [ -f "$cg_file" ] || return 1
+  awk -v BINMODE=3 '
+    /^version:/ {
+      v = $0
+      sub(/^version:[[:space:]]*/, "", v)
+      sub(/\r$/, "", v)
+      sub(/[[:space:]]+#.*$/, "", v)
+      sub(/[[:space:]]+$/, "", v)
+      f = substr(v, 1, 1)
+      if ((f == "\"" || f == sprintf("%c", 39)) && substr(v, length(v), 1) == f) v = substr(v, 2, length(v) - 2)
+      print v
+      exit
+    }
+  ' "$cg_file"
+}
+
+# Vacío si $1 es una versión de prod liberable (x.y.z sin ceros a la izquierda, mayor que el último
+# final y sin tag local ni remoto); si no, el motivo.
+chart_version_problem() {
+  if ! one_line "$1" || ! printf '%s\n' "$1" | grep -Eq '^(0|[123456789][0123456789]*)\.(0|[123456789][0123456789]*)\.(0|[123456789][0123456789]*)$'; then
+    printf '%s no es x.y.z\n' "${1:-(vacía)}"
+    return 0
+  fi
+  cp_last=$(last_final)
+  if ! semver_gt "$1" "$cp_last"; then
+    printf '%s no es mayor que el último final (%s)\n' "$1" "$cp_last"
+    return 0
+  fi
+  if git rev-parse -q --verify "refs/tags/$1" >/dev/null || git ls-remote --exit-code --tags origin "$1" >/dev/null 2>&1; then
+    printf 'ya existe el tag %s\n' "$1"
+  fi
+}
+
+# Escribe version en Chart.yaml (conserva comillas y fin de línea; la agrega si falta).
+chart_version_set() {
+  rewrite "$(chart_dir)/Chart.yaml" chart_version_line "$1" || die "no se pudo escribir version en $(chart_dir)/Chart.yaml"
+}
+
+chart_version_line() {
+  awk -v BINMODE=3 -v nv="$1" '
+    NR == 1 { cr = ($0 ~ /\r$/) ? "\r" : "" }
+    /^version:/ && !done {
+      v = $0
+      sub(/^version:[[:space:]]*/, "", v)
+      q = substr(v, 1, 1)
+      if (q != "\"" && q != sprintf("%c", 39)) q = ""
+      print "version: " q nv q cr
+      done = 1
+      next
+    }
+    { print }
+    END { if (!done) print "version: " nv cr }
+  ' "$2"
+}
+
 # Quita ceros a la izquierda ("08" → "8"): sh interpreta "08" como octal inválido en $(( )).
 strip_zeros() {
   sz=${1#"${1%%[!0]*}"}
@@ -632,6 +690,43 @@ cmd_release_prep() {
   fi
 }
 
+# chart-prep [--apply] [tipo]: decide en develop la versión del chart para prod; con --apply la escribe y commitea.
+cmd_chart_prep() {
+  cp_apply=no
+  if [ "${1:-}" = "--apply" ]; then
+    cp_apply=yes
+    shift
+  fi
+  cp_type=${1:-}
+  if ! cp_cur=$(chart_version_get); then
+    kv chart skipped
+    return 0
+  fi
+  if [ -z "$(chart_version_problem "$cp_cur")" ]; then
+    kv version "$cp_cur"
+    kv changed no
+    return 0
+  fi
+  cp_new=$(open_rc_base)
+  if [ -z "$cp_new" ]; then
+    [ -n "$cp_type" ] || die "falta el tipo (patch|minor|major)"
+    cp_new=$(semver_bump "$(last_final)" "$cp_type") || exit 1
+  fi
+  cp_err=$(chart_version_problem "$cp_new")
+  [ -z "$cp_err" ] || die "$cp_err"
+  if [ "$cp_apply" = yes ]; then
+    [ "$(current_branch)" != "$(main_branch)" ] || die "en $(main_branch) no se commitea: la versión del chart se decide en otra rama y llega por MR"
+    [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  fi
+  kv version "$cp_new"
+  kv changed yes
+  if [ "$cp_apply" = yes ]; then
+    chart_version_set "$cp_new"
+    git commit -q -a -m "Chart a $cp_new" || die "no se pudo crear el commit del chart"
+    kv committed yes
+  fi
+}
+
 # tag-push <tag>: crea el tag anotado y empuja rama y tag de forma atómica.
 cmd_tag_push() {
   tp_tag=${1:-}
@@ -852,7 +947,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge|release-target>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|chart-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge|release-target>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
