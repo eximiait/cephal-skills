@@ -647,6 +647,17 @@ cmd_tag_push() {
   tp_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
   require_origin_upstream "$tp_branch"
   [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  # Un tag final solo se empuja sobre lo que ya está en origin/<main> (llegó por MR): nunca commits locales.
+  case "$tp_tag" in
+    *-rc.*) ;;
+    *)
+      tp_err=$(git fetch --tags origin 2>&1) || die "no se pudo consultar origin: $tp_err"
+      tp_counts=$(git rev-list --left-right --count "HEAD...origin/$tp_branch")
+      tp_ahead=${tp_counts%%[[:space:]]*}
+      [ "$tp_ahead" = 0 ] || die "$tp_branch tiene commits sin integrar por MR"
+      [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$tp_branch")" ] || die "$tp_branch no coincide con origin/$tp_branch; actualizala (release-target)"
+      ;;
+  esac
   if git rev-parse -q --verify "refs/tags/$tp_tag" >/dev/null || git ls-remote --exit-code --tags origin "$tp_tag" >/dev/null 2>&1; then
     die "el tag $tp_tag ya existe"
   fi

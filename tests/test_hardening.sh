@@ -38,6 +38,7 @@ run_cv release-prep --apply
 git push -q
 git checkout -q main
 git merge -q --ff-only develop
+git push -q origin main # equivale al MR mergeado en GitLab
 run_cv tag-push 1.0.0
 assert_eq "pushed=1.0.0" "$OUT" "tag-push con versión limpia"
 
