@@ -78,7 +78,7 @@ Salida: líneas `clave=valor` en stdout para que el agente las muestre. Errores:
 
 **Directorio del chart**: `HELM_BASEDIR` del `.gitlab-ci.yml`; por defecto `chart`. Si no existe `Chart.yaml`, `bump` omite el `appVersion` y lo informa.
 
-**Validaciones de `check`**: árbol de trabajo limpio; `HEAD` igual a `origin/<rama>` tras `git fetch --tags origin`; rama con upstream; tag inexistente; formato semver válido; identidad git configurada.
+**Validaciones de `check`**: `HEAD` en una rama (no desacoplado); rama con upstream; árbol de trabajo limpio; `HEAD` igual a `origin/<rama>` tras `git fetch --tags origin`; identidad git configurada. `tag-push` valida además el formato del tag (final o RC), que no exista y que no haya cambios sin commitear.
 
 Tras `release-prep --apply`, `HEAD` queda un commit adelante de `origin`; `tag-push` empuja ese commit y el tag en una sola operación atómica, con una única confirmación.
 
