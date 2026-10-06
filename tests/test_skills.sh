@@ -1,0 +1,46 @@
+. "$(dirname "$0")/lib.sh"
+cd "$ROOT" || exit 1
+
+SKILLS="bump-app-version deploy-test deploy-prod"
+
+for s in $SKILLS; do
+  f="skills/$s/SKILL.md"
+  assert_eq "---" "$(sed -n 1p "$f" 2>/dev/null)" "$s: frontmatter abre"
+  assert_eq "name: $s" "$(sed -n 2p "$f" 2>/dev/null)" "$s: name igual al directorio"
+  case "$(sed -n 3p "$f" 2>/dev/null)" in "description: "?*) d=ok ;; *) d=falta ;; esac
+  assert_eq ok "$d" "$s: tiene description"
+  assert_eq "---" "$(sed -n 4p "$f" 2>/dev/null)" "$s: frontmatter cierra"
+  n=$(wc -l < "$f" 2>/dev/null || echo 999)
+  [ "$n" -le 60 ] && l=ok || l="$n líneas"
+  assert_eq ok "$l" "$s: ≤ 60 líneas"
+  assert_eq yes "$(grep -q 'scripts/cephal-version' "$f" 2>/dev/null && echo yes || echo no)" "$s: referencia el script"
+  assert_eq same "$(cmp -s scripts/cephal-version "skills/$s/scripts/cephal-version" && echo same || echo differ)" "$s: copia del script"
+  assert_eq same "$(cmp -s scripts/cephal-version.ps1 "skills/$s/scripts/cephal-version.ps1" && echo same || echo differ)" "$s: copia del wrapper"
+done
+
+for s in deploy-test deploy-prod; do
+  assert_eq yes "$(grep -qi 'confirm' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: pide confirmación"
+  assert_eq yes "$(grep -q 'SNAPSHOT' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: trata -SNAPSHOT"
+done
+assert_eq yes "$(grep -qi 'sin commitear\|no commite' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: no commitea"
+
+# sync
+sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync --check: copias al día"
+printf '# alterado\n' >> skills/deploy-test/scripts/cephal-version
+sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 1 "$?" "sync --check: detecta una copia alterada"
+sh scripts/sync.sh >/dev/null 2>&1
+sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync: restaura las copias"
+
+# manifiestos
+assert_eq yes "$(grep -q '"name": "cephal"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: name"
+assert_eq yes "$(grep -q '"version": "0.1.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.1.0"
+assert_eq yes "$(grep -q '"name": "cephal-skills"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: name"
+assert_eq yes "$(grep -q '"source": "./"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: source"
+if command -v node >/dev/null 2>&1; then
+  for j in .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
+    node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$j" 2>/dev/null
+    assert_eq 0 "$?" "$j: JSON válido"
+  done
+fi
+
+finish

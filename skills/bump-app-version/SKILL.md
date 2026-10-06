@@ -1,0 +1,19 @@
+---
+name: bump-app-version
+description: Sube la versión de la app (pom, gradle, npm o pnpm) y alinea appVersion de Chart.yaml. Usala en la rama de desarrollo antes de liberar cambios de código.
+---
+
+# Subir la versión de la app
+
+`CV` es el script junto a este archivo, con el proyecto como directorio actual:
+`sh <esta carpeta>/scripts/cephal-version`. En PowerShell:
+`powershell -NoProfile -ExecutionPolicy Bypass -File <esta carpeta>/scripts/cephal-version.ps1`.
+Mostrá solo lo imprescindible.
+
+1. `CV context`. Si falla, mostrá el error y terminá.
+2. Si `branch` es distinto de `develop_branch`: `Estás en <branch>; el bump se hace en <develop_branch>.` y terminá.
+3. Preguntá: `¿patch, minor o major? (versión actual: <version>)`.
+4. `CV bump <tipo>`. Mostrá `from → to` y `git diff --stat`.
+5. Cerrá con una línea: `Listo. Commiteá los cambios.`
+
+No commitees ni pushees: eso lo decide el dev.

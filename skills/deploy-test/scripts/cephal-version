@@ -1,0 +1,492 @@
+#!/bin/sh
+# cephal-version: calcula, valida y escribe versiones y tags de despliegue.
+# Diseño: docs/superpowers/specs/2026-10-05-cephal-versioning-skills-design.md
+set -u
+
+die() {
+  printf 'ERR: %s\n' "$*" >&2
+  exit 1
+}
+
+kv() {
+  printf '%s=%s\n' "$1" "$2"
+}
+
+# Valor de una variable del bloque `variables:` de primer nivel del .gitlab-ci.yml raíz.
+ci_var() {
+  [ -f .gitlab-ci.yml ] || return 0
+  awk -v key="$1" '
+    /^variables:[[:space:]]*(#.*)?$/ { inv = 1; next }
+    /^[^[:space:]#]/ { inv = 0 }
+    inv && $0 ~ ("^[[:space:]]+" key ":") {
+      v = $0
+      sub("^[[:space:]]+" key ":[[:space:]]*", "", v)
+      sub(/[[:space:]]+#.*$/, "", v)
+      sub(/[[:space:]]+$/, "", v)
+      f = substr(v, 1, 1)
+      if ((f == "\"" || f == sprintf("%c", 39)) && substr(v, length(v), 1) == f) v = substr(v, 2, length(v) - 2)
+      print v
+      exit
+    }
+  ' .gitlab-ci.yml
+}
+
+develop_branch() {
+  v=$(ci_var DEVELOP_BRANCH)
+  printf '%s\n' "${v:-develop}"
+}
+
+chart_dir() {
+  v=$(ci_var HELM_BASEDIR)
+  printf '%s\n' "${v:-chart}"
+}
+
+# Lenguaje del proyecto: maven|gradle|npm|pnpm. Nota: `die` dentro de $(...) solo sale del subshell;
+# quien la invoque así debe propagar el código de salida.
+detect_lang() {
+  if [ -n "${LANG_OVERRIDE:-}" ]; then
+    case "$LANG_OVERRIDE" in
+      maven | gradle | npm | pnpm)
+        printf '%s\n' "$LANG_OVERRIDE"
+        return 0
+        ;;
+      *) die "lenguaje no soportado: $LANG_OVERRIDE" ;;
+    esac
+  fi
+  found=""
+  n=0
+  if [ -f pom.xml ]; then
+    found=maven
+    n=$((n + 1))
+  fi
+  if [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+    found=gradle
+    n=$((n + 1))
+  fi
+  if [ -f package.json ]; then
+    if [ -f pnpm-lock.yaml ]; then found=pnpm; else found=npm; fi
+    n=$((n + 1))
+  fi
+  [ "$n" -ge 1 ] || die "lenguaje no detectado"
+  [ "$n" -eq 1 ] || die "más de un lenguaje, usá --lang"
+  printf '%s\n' "$found"
+}
+
+# Reescribe $1 con la salida del comando que sigue (que debe leer el archivo); si falla, no toca nada.
+rewrite() {
+  rw_file=$1
+  shift
+  rw_tmp="$rw_file.cephal.$$"
+  if "$@" "$rw_file" >"$rw_tmp"; then
+    mv "$rw_tmp" "$rw_file"
+  else
+    rm -f "$rw_tmp"
+    return 1
+  fi
+}
+
+# Maven. $1 = etiqueta objetivo ("version" o el nombre de una propiedad); $2 = modo (get|set); $3 = nueva versión.
+# Con get imprime el valor; con set imprime el archivo reescrito. Sale con 3 si no encuentra la etiqueta.
+maven_tag() {
+  awk -v BINMODE=3 -v tag="$1" -v mode="$2" -v nv="${3:-}" '
+    BEGIN { re = "<" tag ">[^<]*</" tag ">"; n = length(tag) }
+    {
+      l = $0
+      if (l ~ /<parent>/) inparent = 1
+      if (tag == "version") { if (l ~ /<(dependencies|dependencyManagement|build|profiles|reporting)>/) stop = 1 }
+      else if (l ~ /<profiles>/) stop = 1
+      if (l ~ /<properties>/) inprops = 1
+      if (!done && !stop && !inparent && (tag == "version" || inprops) && match(l, re)) {
+        cur = substr(l, RSTART + n + 2, RLENGTH - 2 * n - 5)
+        done = 1
+        if (mode == "set") l = substr(l, 1, RSTART + n + 1) nv substr(l, RSTART + RLENGTH - n - 3)
+      }
+      if (l ~ /<\/parent>/) inparent = 0
+      if (l ~ /<\/properties>/) inprops = 0
+      out = out l ORS
+    }
+    END {
+      if (!done) exit 3
+      if (mode == "set") printf "%s", out; else print cur
+    }
+  ' pom.xml
+}
+
+# Adaptador para `rewrite`, que agrega el archivo como último argumento (maven_tag ya lee pom.xml).
+maven_tag_file() {
+  maven_tag "$1" "$2" "$3"
+}
+
+# Etiqueta de pom.xml que contiene la versión: "version", o la propiedad si es del tipo ${nombre}.
+maven_target() {
+  mt_v=$(maven_tag version get) || return 1
+  case "$mt_v" in
+    '${'*'}')
+      mt_v=${mt_v#'${'}
+      printf '%s\n' "${mt_v%'}'}"
+      ;;
+    *) printf 'version\n' ;;
+  esac
+}
+
+# Gradle: archivo que define `version` (gradle.properties primero). $1 = modo; $2 = nueva versión.
+gradle_file() {
+  for gf in gradle.properties build.gradle.kts build.gradle; do
+    if [ -f "$gf" ] && grep -Eq '^version[[:space:]]*=' "$gf"; then
+      printf '%s\n' "$gf"
+      return 0
+    fi
+  done
+  return 1
+}
+
+gradle_version() {
+  awk -v BINMODE=3 -v mode="$1" -v nv="${2:-}" '
+    /^version[[:space:]]*=/ && !done {
+      l = $0
+      eq = index(l, "=")
+      head = substr(l, 1, eq)
+      rhs = substr(l, eq + 1)
+      cr = (rhs ~ /\r$/) ? "\r" : ""
+      sub(/\r$/, "", rhs)
+      lead = rhs
+      sub(/[^[:space:]].*$/, "", lead)
+      body = rhs
+      sub(/^[[:space:]]+/, "", body)
+      sub(/[[:space:]]+$/, "", body)
+      q = ""
+      c = substr(body, 1, 1)
+      if ((c == "\"" || c == sprintf("%c", 39)) && substr(body, length(body), 1) == c) {
+        q = c
+        body = substr(body, 2, length(body) - 2)
+      }
+      cur = body
+      done = 1
+      if (mode == "set") $0 = head lead q nv q cr
+    }
+    { out = out $0 ORS }
+    END { if (mode == "set") printf "%s", out; else print cur }
+  ' "$3"
+}
+
+# npm/pnpm: campo "version" de primer nivel de package.json. $1 = modo; $2 = nueva versión.
+npm_version() {
+  awk -v BINMODE=3 -v mode="$1" -v nv="${2:-}" '
+    {
+      l = $0
+      t = l
+      gsub(/"([^"\\]|\\.)*"/, "\"\"", t)
+      if (!done && depth == 1 && l ~ /^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"[^"]*"/) {
+        match(l, /"version"[[:space:]]*:[[:space:]]*"[^"]*"/)
+        seg = substr(l, RSTART, RLENGTH)
+        colon = index(seg, ":")
+        val = substr(seg, colon + 1)
+        ws = val
+        sub(/"[^"]*"$/, "", ws)
+        sub(/^[[:space:]]*"/, "", val)
+        sub(/"$/, "", val)
+        cur = val
+        done = 1
+        if (mode == "set") l = substr(l, 1, RSTART - 1) substr(seg, 1, colon) ws "\"" nv "\"" substr(l, RSTART + RLENGTH)
+      }
+      depth += gsub(/\{/, "{", t) - gsub(/\}/, "}", t)
+      out = out l ORS
+    }
+    END { if (mode == "set") printf "%s", out; else print cur }
+  ' "$3"
+}
+
+# Versión actual de la app (lectura estática del archivo del lenguaje).
+get_version() {
+  gv_lang=$(detect_lang) || exit 1
+  gv=""
+  case "$gv_lang" in
+    maven)
+      gv_tag=$(maven_target) || die "versión no resoluble, definila a mano (pom.xml)"
+      gv=$(maven_tag "$gv_tag" get) || die "versión no resoluble, definila a mano (pom.xml)"
+      ;;
+    gradle)
+      gv_f=$(gradle_file) || die "versión no resoluble, definila a mano (version en gradle.properties o build.gradle)"
+      gv=$(gradle_version get "" "$gv_f")
+      ;;
+    npm | pnpm) gv=$(npm_version get "" package.json) ;;
+  esac
+  case "$gv" in
+    '' | *[!0-9A-Za-z.+_-]* | [!0-9A-Za-z]*) die "versión no resoluble, definila a mano ($gv_lang)" ;;
+  esac
+  printf '%s\n' "$gv"
+}
+
+set_version() {
+  sv_lang=$(detect_lang) || exit 1
+  case "$sv_lang" in
+    maven)
+      sv_tag=$(maven_target) || die "versión no resoluble, definila a mano (pom.xml)"
+      rewrite pom.xml maven_tag_file "$sv_tag" set "$1" || die "no se pudo escribir la versión en pom.xml"
+      ;;
+    gradle)
+      sv_f=$(gradle_file) || die "versión no resoluble, definila a mano (version en gradle.properties o build.gradle)"
+      rewrite "$sv_f" gradle_version set "$1" || die "no se pudo escribir la versión en $sv_f"
+      ;;
+    npm | pnpm) rewrite package.json npm_version set "$1" || die "no se pudo escribir la versión en package.json" ;;
+  esac
+}
+
+# Alinea appVersion de Chart.yaml (comillas dobles). Sin Chart.yaml: informa `chart=skipped`.
+set_chart_app_version() {
+  sc_file="$(chart_dir)/Chart.yaml"
+  if [ ! -f "$sc_file" ]; then
+    kv chart skipped
+    return 0
+  fi
+  rewrite "$sc_file" chart_app_version "$1" || die "no se pudo escribir appVersion en $sc_file"
+}
+
+chart_app_version() {
+  awk -v BINMODE=3 -v nv="$1" '
+    NR == 1 { cr = ($0 ~ /\r$/) ? "\r" : "" }
+    /^appVersion:/ && !done { print "appVersion: \"" nv "\"" cr; done = 1; next }
+    { print }
+    END { if (!done) print "appVersion: \"" nv "\"" cr }
+  ' "$2"
+}
+
+# Sube x.y.z[-SNAPSHOT] según el tipo (patch|minor|major); conserva -SNAPSHOT.
+semver_bump() {
+  sb_v=$1
+  sb_suffix=""
+  case "$sb_v" in
+    *-SNAPSHOT)
+      sb_suffix=-SNAPSHOT
+      sb_v=${sb_v%-SNAPSHOT}
+      ;;
+  esac
+  if ! printf '%s\n' "$sb_v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    if printf '%s\n' "$sb_v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-'; then
+      sb_rest=${sb_v#*-}
+      die "sufijo no soportado: -$sb_rest"
+    fi
+    die "versión no semver: $1"
+  fi
+  sb_maj=${sb_v%%.*}
+  sb_rest=${sb_v#*.}
+  sb_min=${sb_rest%%.*}
+  sb_pat=${sb_rest#*.}
+  case "$2" in
+    patch) sb_pat=$((sb_pat + 1)) ;;
+    minor)
+      sb_min=$((sb_min + 1))
+      sb_pat=0
+      ;;
+    major)
+      sb_maj=$((sb_maj + 1))
+      sb_min=0
+      sb_pat=0
+      ;;
+    *) die "tipo inválido: $2 (patch|minor|major)" ;;
+  esac
+  printf '%s.%s.%s%s\n' "$sb_maj" "$sb_min" "$sb_pat" "$sb_suffix"
+}
+
+# Retorna 0 si $1 > $2 (x.y.z, comparación numérica).
+semver_gt() {
+  awk -v a="$1" -v b="$2" 'BEGIN {
+    split(a, x, "."); split(b, y, ".")
+    for (i = 1; i <= 3; i++) {
+      if (x[i] + 0 > y[i] + 0) exit 0
+      if (x[i] + 0 < y[i] + 0) exit 1
+    }
+    exit 1
+  }'
+}
+
+# Entrada: una versión x.y.z por línea. Salida: la mayor (vacío si no hay).
+max_semver() {
+  awk '
+    function gt(a, b,   x, y, i) {
+      split(a, x, "."); split(b, y, ".")
+      for (i = 1; i <= 3; i++) {
+        if (x[i] + 0 > y[i] + 0) return 1
+        if (x[i] + 0 < y[i] + 0) return 0
+      }
+      return 0
+    }
+    NF { if (best == "" || gt($0, best)) best = $0 }
+    END { if (best != "") print best }
+  '
+}
+
+# Mayor tag final x.y.z, o 0.0.0 si no hay.
+last_final() {
+  lf=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | max_semver)
+  printf '%s\n' "${lf:-0.0.0}"
+}
+
+# Mayor base con tag x.y.z-rc.n, sin tag final de esa base y mayor que el último final; vacío si no hay.
+open_rc_base() {
+  or_last=$(last_final)
+  or_bases=""
+  for or_t in $(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$'); do
+    or_b=${or_t%-rc.*}
+    if semver_gt "$or_b" "$or_last"; then
+      or_bases="$or_bases$or_b
+"
+    fi
+  done
+  printf '%s' "$or_bases" | max_semver
+}
+
+# Mayor n entre los tags <base>-rc.n (0 si no hay).
+max_rc_n() {
+  mr_esc=$(printf '%s' "$1" | sed 's/\./\\./g')
+  git tag --list "$1-rc.*" | grep -E "^$mr_esc-rc\.[0-9]+$" | sed 's/.*-rc\.//' |
+    awk 'BEGIN { m = 0 } { if ($0 + 0 > m) m = $0 + 0 } END { print m }'
+}
+
+# next-tag <test|prod> [patch|minor|major]: imprime el tag siguiente.
+cmd_next_tag() {
+  nt_env=${1:-}
+  nt_type=${2:-}
+  case "$nt_env" in
+    test | prod) ;;
+    *) die "uso: next-tag <test|prod> [patch|minor|major]" ;;
+  esac
+  nt_open=$(open_rc_base)
+  if [ -n "$nt_open" ]; then
+    nt_n=$(max_rc_n "$nt_open")
+    if [ "$nt_env" = test ]; then
+      kv tag "$nt_open-rc.$((nt_n + 1))"
+    else
+      kv tag "$nt_open"
+      kv rc_open yes
+      kv commits_since_rc "$(git rev-list --count "$nt_open-rc.$nt_n..HEAD")"
+    fi
+    return 0
+  fi
+  [ -n "$nt_type" ] || die "falta el tipo (patch|minor|major)"
+  nt_base=$(semver_bump "$(last_final)" "$nt_type") || exit 1
+  if [ "$nt_env" = test ]; then
+    kv tag "$nt_base-rc.1"
+  else
+    kv tag "$nt_base"
+  fi
+}
+
+# Rama actual, o "(detached)" con HEAD desacoplado.
+current_branch() {
+  git symbolic-ref --short -q HEAD || printf '(detached)\n'
+}
+
+# context: estado que necesitan las skills para decidir.
+cmd_context() {
+  cx_lang=$(detect_lang) || exit 1
+  cx_version=$(get_version) || exit 1
+  cx_final=$(last_final)
+  [ "$cx_final" = "0.0.0" ] && cx_final=none
+  cx_open=$(open_rc_base)
+  kv branch "$(current_branch)"
+  kv develop_branch "$(develop_branch)"
+  kv lang "$cx_lang"
+  kv version "$cx_version"
+  kv chart_dir "$(chart_dir)"
+  kv last_final "$cx_final"
+  kv open_rc "${cx_open:-none}"
+}
+
+# check: validaciones comunes de deploy-test y deploy-prod (solo git local).
+cmd_check() {
+  ck_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
+  git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || die "la rama $ck_branch no tiene upstream"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  git fetch -q --tags origin 2>/dev/null || die "no se pudo consultar origin"
+  ck_counts=$(git rev-list --left-right --count 'HEAD...@{u}')
+  if [ "$ck_counts" != "$(printf '0\t0')" ]; then
+    ck_ahead=${ck_counts%%[[:space:]]*}
+    ck_behind=${ck_counts##*[[:space:]]}
+    die "$ck_branch no coincide con su upstream (adelante $ck_ahead, atrás $ck_behind); hacé push o pull"
+  fi
+  if [ -z "$(git config user.name)" ] || [ -z "$(git config user.email)" ]; then
+    die "identidad git no configurada (user.name y user.email)"
+  fi
+  kv check ok
+}
+
+# bump <patch|minor|major|x.y.z>: sube la versión de la app y alinea appVersion; no commitea.
+cmd_bump() {
+  bp_arg=${1:-}
+  [ -n "$bp_arg" ] || die "uso: bump <patch|minor|major|x.y.z>"
+  bp_branch=$(current_branch)
+  bp_dev=$(develop_branch)
+  [ "$bp_branch" = "$bp_dev" ] || die "estás en $bp_branch; el bump se hace en $bp_dev"
+  bp_from=$(get_version) || exit 1
+  if printf '%s\n' "$bp_arg" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?$'; then
+    bp_to=$bp_arg
+  else
+    bp_to=$(semver_bump "$bp_from" "$bp_arg") || exit 1
+  fi
+  set_version "$bp_to"
+  set_chart_app_version "$bp_to"
+  kv from "$bp_from"
+  kv to "$bp_to"
+}
+
+# release-prep [--apply]: informa si la versión tiene -SNAPSHOT; con --apply lo quita y commitea.
+cmd_release_prep() {
+  rp_v=$(get_version) || exit 1
+  case "$rp_v" in
+    *-SNAPSHOT) ;;
+    *)
+      kv snapshot no
+      return 0
+      ;;
+  esac
+  rp_rel=${rp_v%-SNAPSHOT}
+  kv snapshot yes
+  kv release "$rp_rel"
+  if [ "${1:-}" = "--apply" ]; then
+    set_version "$rp_rel"
+    set_chart_app_version "$rp_rel"
+    git commit -q -a -m "Release app $rp_rel" || die "no se pudo crear el commit de release"
+    kv committed yes
+  fi
+}
+
+# tag-push <tag>: crea el tag anotado y empuja rama y tag de forma atómica.
+cmd_tag_push() {
+  tp_tag=${1:-}
+  [ -n "$tp_tag" ] || die "uso: tag-push <tag>"
+  printf '%s\n' "$tp_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$' || die "formato de tag inválido: $tp_tag"
+  tp_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  if git rev-parse -q --verify "refs/tags/$tp_tag" >/dev/null || git ls-remote --exit-code --tags origin "$tp_tag" >/dev/null 2>&1; then
+    die "el tag $tp_tag ya existe"
+  fi
+  git tag -a "$tp_tag" -m "$tp_tag" || die "no se pudo crear el tag $tp_tag"
+  if ! git push --atomic origin "HEAD:refs/heads/$tp_branch" "refs/tags/$tp_tag"; then
+    git tag -d "$tp_tag" >/dev/null
+    die "el push falló; se eliminó el tag local $tp_tag"
+  fi
+  kv pushed "$tp_tag"
+}
+
+main() {
+  LANG_OVERRIDE=""
+  if [ "${1:-}" = "--lang" ]; then
+    [ $# -ge 2 ] || die "falta el valor de --lang"
+    LANG_OVERRIDE=$2
+    shift 2
+  fi
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push>"
+  sub=$1
+  shift
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
+  cd "$top" || die "no se pudo entrar a $top"
+  fn="cmd_$(printf '%s' "$sub" | tr '-' '_')"
+  if type "$fn" >/dev/null 2>&1; then
+    "$fn" "$@"
+  else
+    die "subcomando desconocido: $sub"
+  fi
+}
+
+[ "${CEPHAL_VERSION_SOURCED:-}" = 1 ] || main "$@"

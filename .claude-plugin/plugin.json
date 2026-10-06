@@ -1,0 +1,13 @@
+{
+  "name": "cephal",
+  "description": "Skills de la familia cephal: versionado de la app y despliegue por tags a test y prod",
+  "version": "0.1.0",
+  "author": {
+    "name": "EximiaIT",
+    "url": "https://github.com/eximiait"
+  },
+  "homepage": "https://github.com/eximiait/cephal-skills",
+  "repository": "https://github.com/eximiait/cephal-skills",
+  "license": "MIT",
+  "keywords": ["cephal", "versioning", "semver", "gitlab", "helm"]
+}

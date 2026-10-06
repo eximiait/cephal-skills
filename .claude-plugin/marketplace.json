@@ -1,0 +1,26 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "cephal-skills",
+  "owner": {
+    "name": "EximiaIT",
+    "url": "https://github.com/eximiait"
+  },
+  "description": "Skills de la familia cephal para agentes de código.",
+  "plugins": [
+    {
+      "name": "cephal",
+      "description": "Versionado de la app y despliegue por tags a test y prod.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "EximiaIT",
+        "url": "https://github.com/eximiait"
+      },
+      "homepage": "https://github.com/eximiait/cephal-skills",
+      "repository": "https://github.com/eximiait/cephal-skills",
+      "license": "MIT",
+      "category": "productivity",
+      "keywords": ["cephal", "versioning", "semver", "gitlab", "helm"]
+    }
+  ]
+}
