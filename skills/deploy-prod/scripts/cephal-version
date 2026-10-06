@@ -78,6 +78,10 @@ rewrite() {
   shift
   rw_tmp="$rw_file.cephal.$$"
   if "$@" "$rw_file" >"$rw_tmp"; then
+    # awk termina cada línea con salto; si el original no lo tenía al final, se quita.
+    if [ -s "$rw_file" ] && [ -n "$(tail -c 1 "$rw_file")" ]; then
+      printf '%s' "$(cat "$rw_tmp")" >"$rw_tmp.n" && mv "$rw_tmp.n" "$rw_tmp"
+    fi
     mv "$rw_tmp" "$rw_file"
   else
     rm -f "$rw_tmp"
@@ -366,6 +370,7 @@ cmd_next_tag() {
     test | prod) ;;
     *) die "uso: next-tag <test|prod> [patch|minor|major]" ;;
   esac
+  kv head "$(git rev-parse --short HEAD)"
   nt_open=$(open_rc_base)
   if [ -n "$nt_open" ]; then
     nt_n=$(max_rc_n "$nt_open")

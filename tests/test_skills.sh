@@ -25,6 +25,8 @@ done
 for s in deploy-test deploy-prod; do
   assert_eq yes "$(grep -qi 'confirm' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: pide confirmación"
   assert_eq yes "$(grep -q 'SNAPSHOT' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: trata -SNAPSHOT"
+  assert_eq yes "$(grep -qF 'Tag <tag> sobre <head>' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: usa head= de next-tag"
+  assert_eq yes "$(grep -qF 'queda local' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: aclara que sin confirmación el commit queda local"
 done
 assert_eq yes "$(grep -qi 'sin commitear\|no commite' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: no commitea"
 

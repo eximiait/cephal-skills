@@ -47,6 +47,14 @@ assert_eq 1 "$RC" "check: commit sin pushear falla"
 assert_contains "$ERRO" "adelante 1" "check: commit sin pushear, mensaje"
 git reset -q --hard origin/develop
 
+# rama detrás de origin: otro clon pushea un commit
+git clone -q "$T/origin.git" "$T/other"
+(cd "$T/other" && git config user.name "Otro" && git config user.email "otro@test" && echo 1 > otro.txt && git add -A && git commit -q -m "otro" && git push -q)
+run_cv check
+assert_eq 1 "$RC" "check: rama detrás de origin falla"
+assert_contains "$ERRO" "atrás 1" "check: rama detrás de origin, mensaje"
+git pull -q --ff-only
+
 # HEAD desacoplado
 git checkout -q --detach
 run_cv check
