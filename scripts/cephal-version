@@ -372,6 +372,45 @@ cmd_next_tag() {
   fi
 }
 
+# Rama actual, o "(detached)" con HEAD desacoplado.
+current_branch() {
+  git symbolic-ref --short -q HEAD || printf '(detached)\n'
+}
+
+# context: estado que necesitan las skills para decidir.
+cmd_context() {
+  cx_lang=$(detect_lang) || exit 1
+  cx_version=$(get_version) || exit 1
+  cx_final=$(last_final)
+  [ "$cx_final" = "0.0.0" ] && cx_final=none
+  cx_open=$(open_rc_base)
+  kv branch "$(current_branch)"
+  kv develop_branch "$(develop_branch)"
+  kv lang "$cx_lang"
+  kv version "$cx_version"
+  kv chart_dir "$(chart_dir)"
+  kv last_final "$cx_final"
+  kv open_rc "${cx_open:-none}"
+}
+
+# check: validaciones comunes de deploy-test y deploy-prod (solo git local).
+cmd_check() {
+  ck_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
+  git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1 || die "la rama $ck_branch no tiene upstream"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
+  git fetch -q --tags origin 2>/dev/null || die "no se pudo consultar origin"
+  ck_counts=$(git rev-list --left-right --count 'HEAD...@{u}')
+  if [ "$ck_counts" != "$(printf '0\t0')" ]; then
+    ck_ahead=${ck_counts%%[[:space:]]*}
+    ck_behind=${ck_counts##*[[:space:]]}
+    die "$ck_branch no coincide con su upstream (adelante $ck_ahead, atrás $ck_behind); hacé push o pull"
+  fi
+  if [ -z "$(git config user.name)" ] || [ -z "$(git config user.email)" ]; then
+    die "identidad git no configurada (user.name y user.email)"
+  fi
+  kv check ok
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -382,6 +421,8 @@ main() {
   [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push>"
   sub=$1
   shift
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
+  cd "$top" || die "no se pudo entrar a $top"
   fn="cmd_$(printf '%s' "$sub" | tr '-' '_')"
   if type "$fn" >/dev/null 2>&1; then
     "$fn" "$@"
