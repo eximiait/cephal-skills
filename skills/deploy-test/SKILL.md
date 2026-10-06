@@ -9,7 +9,7 @@ description: Crea y pushea el tag x.y.z-rc.n que despliega a test desde la rama 
 `sh "<esta carpeta>/scripts/cephal-version"`. En PowerShell:
 `powershell -NoProfile -ExecutionPolicy Bypass -File "<esta carpeta>/scripts/cephal-version.ps1"`.
 Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaje y anteponé `--lang <maven|gradle|npm|pnpm>` a cada subcomando.
-Si una salida trae `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
+Si `bump` o `release-prep --apply` traen `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
 Mostrá solo lo imprescindible.
 
 1. `CV context` y `CV check`. Si alguno falla, mostrá el error y terminá. Si `branch` es `main_branch`, decí `En <main_branch> no se crean RC` y terminá.

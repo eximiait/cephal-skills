@@ -86,4 +86,38 @@ assert_eq "tag=2.5.0
 rc_open=yes
 commits_since_rc=2" "$(nohead)" "Chart.yaml con RC abierto de esa base: informa commits desde el RC"
 
+# casos borde de la versión en Chart.yaml
+for bad in 1.02.0 v1.2.0 1.2; do
+  on_main_with_chart "$bad"
+  run_cv next-tag prod
+  assert_eq 1 "$RC" "Chart.yaml $bad: falla"
+  assert_contains "$ERRO" "no es x.y.z" "Chart.yaml $bad: no es x.y.z"
+done
+
+# HELM_BASEDIR propio
+new_repo
+git tag 2.4.0
+git checkout -q main
+add_file .gitlab-ci.yml 'variables:
+  HELM_BASEDIR: deploy/helm'
+mkdir -p deploy/helm chart; printf 'name: demo\nversion: 2.6.0\n' > deploy/helm/Chart.yaml; printf 'name: x\nversion: 9.9.9\n' > chart/Chart.yaml
+commit_all "helm"
+run_cv next-tag prod
+assert_eq "tag=2.6.0" "$(nohead)" "HELM_BASEDIR=deploy/helm: usa ese Chart.yaml"
+
+# tag que existe solo en el remoto
+on_main_with_chart 2.5.0
+git clone -q "$T/origin.git" "$T/other"
+(cd "$T/other" && git tag 2.5.0 && git push -q origin 2.5.0)
+run_cv next-tag prod
+assert_eq 1 "$RC" "tag solo en el remoto: falla"
+assert_contains "$ERRO" "ya existe el tag 2.5.0" "tag solo en el remoto: mensaje"
+
+# un tag remoto con el mismo sufijo (release/2.5.0) no bloquea 2.5.0
+on_main_with_chart 2.5.0
+rm -rf "$T/other"; git clone -q "$T/origin.git" "$T/other"
+(cd "$T/other" && git tag release/2.5.0 && git push -q origin release/2.5.0)
+run_cv next-tag prod
+assert_eq "tag=2.5.0" "$(nohead)" "release/2.5.0 en el remoto no bloquea 2.5.0"
+
 finish

@@ -120,4 +120,30 @@ run_cv chart-prep patch
 assert_eq "version=2.4.1
 changed=yes" "$OUT" "tag solo en el remoto: no liberable"
 
+# comentario en la línea version: se conserva
+new_repo
+chart "name: demo
+version: '1.0.0' # chart"
+commit_all "chart"; git push -q; git tag 1.0.0
+run_cv chart-prep --apply patch
+assert_eq "version: '1.0.1' # chart" "$(vline)" "--apply: conserva comillas y comentario"
+
+# CRLF sin salto final, version en la última línea: sin \r suelto al final
+new_repo
+mkdir -p chart; printf 'name: demo\r\nversion: 1.0.0' > chart/Chart.yaml
+commit_all "chart"; git push -q; git tag 1.0.0
+run_cv chart-prep --apply patch
+printf 'name: demo\r\nversion: 1.0.1' > "$T/exp"
+assert_eq same "$(cmp -s chart/Chart.yaml "$T/exp" && echo same || echo differ)" "--apply: CRLF sin salto final, sin \r suelto"
+
+# origin inaccesible: no se asume que el tag no existe
+new_repo
+chart 'name: demo
+version: 2.5.0'
+commit_all "chart"; git push -q; git tag 2.4.0
+git remote set-url origin "$T/no-existe.git"
+run_cv chart-prep
+assert_eq 1 "$RC" "origin inaccesible: falla"
+assert_contains "$ERRO" "no se pudo consultar los tags de origin" "origin inaccesible: mensaje"
+
 finish

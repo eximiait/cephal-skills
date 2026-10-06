@@ -79,4 +79,8 @@ assert_eq yes "$(grep -qF 'repetirlo es seguro' skills/deploy-prod/SKILL.md && e
 assert_eq yes "$(grep -qF 'chart-prep' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: decide la versión del chart con chart-prep"
 assert_eq yes "$(grep -qF 'Versión a liberar' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: informa la versión a liberar"
 
+assert_eq yes "$(grep -qF -- '- `mr_iid`: *Preparar*' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: con un MR abierto también corre Preparar"
+assert_eq yes "$(grep -qF 'volvé a `develop_branch`' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: salida cuando la versión del chart no es liberable en main"
+assert_eq no "$(grep -qF 'Si una salida trae `chart=skipped`' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: el aviso de appVersion no aplica a chart-prep"
+
 finish

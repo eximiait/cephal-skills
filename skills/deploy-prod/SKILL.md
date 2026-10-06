@@ -9,7 +9,7 @@ description: Libera a prod. Integra develop en main por MR y pushea el tag x.y.z
 `sh "<esta carpeta>/scripts/cephal-version"`. En PowerShell:
 `powershell -NoProfile -ExecutionPolicy Bypass -File "<esta carpeta>/scripts/cephal-version.ps1"`.
 Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaje y anteponé `--lang <maven|gradle|npm|pnpm>` a cada subcomando.
-Si una salida trae `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
+Si `bump` o `release-prep --apply` traen `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
 Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR ni tag.
 
 1. `CV context`; si falla, mostrá el error y terminá. Si `branch` no es `develop_branch` ni `main_branch`, decilo y terminá.
@@ -20,7 +20,7 @@ Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR 
    - `gitlab=manual`: *Preparar* y *Manual*.
    - `gitlab=glab`: `CV mr-find`.
      - `mr=none`: *Preparar*; después pedí confirmación y `CV mr-create`; informá `mr_url`, y seguí con su `mr_iid`.
-     - `mr_iid`: `CV mr-status <iid>`, según `pipeline`:
+     - `mr_iid`: *Preparar* (si pushea algo, el MR se actualiza y su pipeline vuelve a correr); después `CV mr-status <iid>`, según `pipeline`:
        - `running`: repetí `CV mr-wait <iid> pipeline` mientras `timeout=yes`, hasta `CEPHAL_WAIT_MINUTES` (20) en total; al vencer: `Volvé a correr deploy-prod cuando termine.` Con `timeout=no`: si `state=closed`, decí `El MR se cerró sin mergear` y terminá; si `state=merged`, volvé al paso 2; si no, seguí según el `pipeline` devuelto (ramas siguientes).
        - `failed`, `canceled`, `skipped`, `manual`: mostrá `state` y `url` y terminá.
        - `none`: sin pipeline, solo el dev puede mergear; avisá y terminá.
@@ -29,7 +29,7 @@ Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR 
    - Con el MR mergeado, volvé al paso 2.
 4. El checkout ahora está en `main_branch` (decilo). `release-target` trae `head` y, si existe, `tagged`. Con `tagged`: `Ya liberado: <tag>` y terminá.
 5. `CV release-prep`. Con `snapshot=yes`: destacá **⚠️ Así no se puede liberar: quitá -SNAPSHOT en develop y mergealo por MR**, sin commitear, y terminá.
-6. Volvé a correr `CV context` (los tags ya están al día) y usá su `last_final` y `branch`. `CV next-tag prod` (con Chart.yaml, el tag es su versión). Si falla con `falta el tipo` (repo sin Chart.yaml), preguntá `¿patch, minor o major sobre <last_final>?` y repetilo con el tipo; con otro error, mostralo y terminá (la versión se corrige en develop). Devuelve `tag` y `head`; con `rc_open=yes`, informá `<commits_since_rc> commits desde el último RC`.
+6. Volvé a correr `CV context` (los tags ya están al día) y usá su `last_final` y `branch`. `CV next-tag prod` (con Chart.yaml, el tag es su versión). Si falla con `falta el tipo` (repo sin Chart.yaml), preguntá `¿patch, minor o major sobre <last_final>?` y repetilo con el tipo; si el error menciona `chart-prep`, volvé a `develop_branch` (`git checkout`), corré `CV chart-prep --apply [tipo]` (preguntá el tipo si lo pide) y `CV push-branch` con confirmación, y seguí desde el paso 2; con otro error, mostralo y terminá. Devuelve `tag` y `head`; con `rc_open=yes`, informá `<commits_since_rc> commits desde el último RC`.
 7. Mostrá `Tag <tag> sobre <head> (<branch>)` y pedí confirmación explícita.
 8. Solo con el sí: `CV tag-push <tag>` e informá `pushed=<tag>`. Sin el sí no pushees: lo local queda local.
 
