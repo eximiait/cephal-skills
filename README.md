@@ -29,6 +29,8 @@ Codex, OpenCode y otros agentes (copia las skills al directorio de cada agente):
 npx skills add eximiait/cephal-skills -g -a codex -a opencode
 ```
 
+Actualizar: `/plugin marketplace update cephal-skills` (Claude Code) o `npx skills update` (los demás). El instalador `npx skills` no documenta un flag para fijar versión; para fijarla, copiá `skills/` desde el tag `vX.Y.Z` del repo.
+
 ## Uso
 
 Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` o `deploy-prod` (en Claude Code: `cephal:bump-app-version`, etc.).
