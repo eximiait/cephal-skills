@@ -343,6 +343,35 @@ max_rc_n() {
     awk 'BEGIN { m = 0 } { if ($0 + 0 > m) m = $0 + 0 } END { print m }'
 }
 
+# next-tag <test|prod> [patch|minor|major]: imprime el tag siguiente.
+cmd_next_tag() {
+  nt_env=${1:-}
+  nt_type=${2:-}
+  case "$nt_env" in
+    test | prod) ;;
+    *) die "uso: next-tag <test|prod> [patch|minor|major]" ;;
+  esac
+  nt_open=$(open_rc_base)
+  if [ -n "$nt_open" ]; then
+    nt_n=$(max_rc_n "$nt_open")
+    if [ "$nt_env" = test ]; then
+      kv tag "$nt_open-rc.$((nt_n + 1))"
+    else
+      kv tag "$nt_open"
+      kv rc_open yes
+      kv commits_since_rc "$(git rev-list --count "$nt_open-rc.$nt_n..HEAD")"
+    fi
+    return 0
+  fi
+  [ -n "$nt_type" ] || die "falta el tipo (patch|minor|major)"
+  nt_base=$(semver_bump "$(last_final)" "$nt_type") || exit 1
+  if [ "$nt_env" = test ]; then
+    kv tag "$nt_base-rc.1"
+  else
+    kv tag "$nt_base"
+  fi
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
