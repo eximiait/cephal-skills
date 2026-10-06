@@ -49,7 +49,7 @@ commit_all "ci"
 git push -q
 run_cv bump patch
 assert_eq 1 "$RC" "con DEVELOP_BRANCH=main, bump en develop falla"
-git checkout -q -b main
+git checkout -q -B main
 run_cv bump patch
 assert_eq 0 "$RC" "con DEVELOP_BRANCH=main, bump en main funciona"
 

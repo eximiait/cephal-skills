@@ -13,6 +13,7 @@ git tag 2.4.0
 run_cv context
 assert_eq "branch=develop
 develop_branch=develop
+main_branch=main
 lang=maven
 version=1.3.1-SNAPSHOT
 chart_dir=chart

@@ -10,7 +10,7 @@ GIT_CONFIG_NOSYSTEM=1
 export GIT_CONFIG_GLOBAL GIT_CONFIG_NOSYSTEM
 unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL EMAIL
 
-# Crea un repo temporal en `develop` con remoto bare `origin`, un commit inicial pusheado, y hace cd.
+# Crea un repo temporal con remoto bare `origin`, ramas `develop` y `main` en el commit inicial (ambas pusheadas), checkout en `develop`; hace cd.
 new_repo() {
   T=$(mktemp -d)
   git init -q --bare -b develop "$T/origin.git"
@@ -27,6 +27,8 @@ new_repo() {
   git add -A
   git commit -q -m "Initial"
   git push -q -u origin develop
+  git branch main
+  git push -q -u origin main
 }
 
 add_file() {

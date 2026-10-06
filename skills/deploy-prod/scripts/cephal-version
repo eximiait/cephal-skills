@@ -36,6 +36,12 @@ develop_branch() {
   printf '%s\n' "${v:-develop}"
 }
 
+# Rama principal (de donde sale el deploy a prod): MAIN_BRANCH del .gitlab-ci.yml, por defecto main.
+main_branch() {
+  v=$(ci_var MAIN_BRANCH)
+  printf '%s\n' "${v:-main}"
+}
+
 chart_dir() {
   v=$(ci_var HELM_BASEDIR)
   printf '%s\n' "${v:-chart}"
@@ -370,6 +376,8 @@ cmd_next_tag() {
     test | prod) ;;
     *) die "uso: next-tag <test|prod> [patch|minor|major]" ;;
   esac
+  # La regla de rama depende solo del entorno: prod = tag final, test = RC.
+  if [ "$nt_env" = prod ]; then assert_tag_branch x.y.z; else assert_tag_branch x.y.z-rc.1; fi
   kv head "$(git rev-parse --short HEAD)"
   nt_open=$(open_rc_base)
   if [ -n "$nt_open" ]; then
@@ -397,6 +405,16 @@ current_branch() {
   git symbolic-ref --short -q HEAD || printf '(detached)\n'
 }
 
+# Un tag final (x.y.z) solo sale de la rama principal; un RC (x.y.z-rc.n), de cualquier otra.
+assert_tag_branch() {
+  at_cur=$(current_branch)
+  at_main=$(main_branch)
+  case "$1" in
+    *-rc.*) [ "$at_cur" != "$at_main" ] || die "un RC no sale de $at_main" ;;
+    *) [ "$at_cur" = "$at_main" ] || die "deploy a prod solo desde $at_main; estás en $at_cur" ;;
+  esac
+}
+
 # context: estado que necesitan las skills para decidir.
 cmd_context() {
   cx_lang=$(detect_lang) || exit 1
@@ -406,6 +424,7 @@ cmd_context() {
   cx_open=$(open_rc_base)
   kv branch "$(current_branch)"
   kv develop_branch "$(develop_branch)"
+  kv main_branch "$(main_branch)"
   kv lang "$cx_lang"
   kv version "$cx_version"
   kv chart_dir "$(chart_dir)"
@@ -472,6 +491,7 @@ cmd_release_prep() {
   kv snapshot yes
   kv release "$rp_rel"
   if [ "${1:-}" = "--apply" ]; then
+    [ "$(current_branch)" != "$(main_branch)" ] || die "en $(main_branch) no se commitea: quitá -SNAPSHOT en otra rama y mergealo por MR"
     [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
     set_version "$rp_rel"
     set_chart_app_version "$rp_rel"
@@ -487,6 +507,7 @@ cmd_tag_push() {
   if ! one_line "$tp_tag" || ! printf '%s\n' "$tp_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
     die "formato de tag inválido: $tp_tag"
   fi
+  assert_tag_branch "$tp_tag"
   # El pipeline falla en un tag si la versión de la app tiene -SNAPSHOT (solo si el lenguaje es detectable).
   if tp_v=$(get_version 2>/dev/null); then
     case "$tp_v" in
@@ -507,6 +528,14 @@ cmd_tag_push() {
   kv pushed "$tp_tag"
 }
 
+# push-branch: empuja la rama actual a origin/<rama> (sin force); nunca la principal.
+cmd_push_branch() {
+  pb_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
+  [ "$pb_branch" != "$(main_branch)" ] || die "en $pb_branch no se empuja: llegá por MR"
+  git push origin "HEAD:refs/heads/$pb_branch" || die "no se pudo empujar $pb_branch"
+  kv pushed_branch "$pb_branch"
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -514,7 +543,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"

@@ -30,6 +30,9 @@ for s in deploy-test deploy-prod; do
 done
 assert_eq yes "$(grep -qi 'sin commitear\|no commite' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: no commitea"
 
+# nunca force ni borrar tags
+assert_eq "" "$(grep -rE -- '--force|push -f|tag -f' scripts skills 2>/dev/null)" "sin --force, push -f ni tag -f"
+
 # sync
 sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync --check: copias al día"
 printf '# alterado\n' >> skills/deploy-test/scripts/cephal-version

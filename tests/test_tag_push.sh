@@ -8,12 +8,13 @@ assert_eq "2.5.0-rc.1" "$(git tag -l --format='%(contents)' 2.5.0-rc.1)" "tag-pu
 assert_eq "Dev Test" "$(git for-each-ref refs/tags/2.5.0-rc.1 --format='%(taggername)')" "tag-push: el tagger es el dev"
 assert_eq 0 "$(git cat-file -p 2.5.0-rc.1 | grep -ciE 'co-authored|claude|cephal')" "tag-push: sin menciones al agente ni a cephal"
 
+git checkout -q main
 # commit de release local: se empuja junto con el tag
 echo 1 > release.txt
 commit_all "Release app 1.0.0"
 run_cv tag-push 1.0.0
 assert_eq "pushed=1.0.0" "$OUT" "tag-push con commit adelantado: salida"
-assert_eq "$(git rev-parse HEAD)" "$(git -C "$T/origin.git" rev-parse develop)" "tag-push: el commit adelantado llega al remoto"
+assert_eq "$(git rev-parse HEAD)" "$(git -C "$T/origin.git" rev-parse main)" "tag-push: el commit adelantado llega al remoto"
 assert_eq tag "$(git -C "$T/origin.git" cat-file -t 1.0.0)" "tag-push: el tag llega al remoto"
 
 # tag duplicado
@@ -37,7 +38,7 @@ git checkout -q -- README.md
 git checkout -q --detach
 run_cv tag-push 1.0.1
 assert_eq 1 "$RC" "HEAD desacoplado falla"
-git checkout -q develop
+git checkout -q main
 
 # el remoto rechaza: no queda el tag local
 printf '#!/bin/sh\nexit 1\n' > "$T/origin.git/hooks/pre-receive"
@@ -48,12 +49,13 @@ assert_eq "" "$(git tag --list 9.9.9)" "push rechazado: no queda el tag local"
 rm -f "$T/origin.git/hooks/pre-receive"
 
 # upstream distinto de origin/<misma rama>: no se crea una rama remota nueva
+git checkout -q develop
 git checkout -q -b feature/y --track origin/develop
-run_cv tag-push 7.7.7
+run_cv tag-push 7.7.7-rc.1
 assert_eq 1 "$RC" "upstream distinto de origin/<rama> falla"
 assert_contains "$ERRO" "rastrea origin/develop" "upstream distinto: mensaje"
 assert_eq "" "$(git -C "$T/origin.git" branch --list feature/y)" "upstream distinto: no crea la rama remota"
-assert_eq "" "$(git tag --list 7.7.7)" "upstream distinto: no deja tag local"
-git checkout -q develop
+assert_eq "" "$(git tag --list 7.7.7-rc.1)" "upstream distinto: no deja tag local"
+git checkout -q main
 
 finish

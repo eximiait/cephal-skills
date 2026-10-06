@@ -24,14 +24,20 @@ run_cv tag-push "$(printf '1.0.0\nfoo')"
 assert_eq 1 "$RC" "tag con salto de línea falla"
 assert_contains "$ERRO" "formato de tag inválido" "tag con salto de línea: mensaje"
 
-# tag-push rechaza una versión de app con -SNAPSHOT.
+# tag-push rechaza una versión de app con -SNAPSHOT (main tiene el mismo pom).
+git checkout -q main
+git merge -q --ff-only develop
 run_cv tag-push 1.0.0
 assert_eq 1 "$RC" "tag-push con versión -SNAPSHOT falla"
 assert_contains "$ERRO" "-SNAPSHOT" "tag-push con -SNAPSHOT: mensaje"
 assert_eq "" "$(git tag --list 1.0.0)" "tag-push con -SNAPSHOT: no crea el tag"
 
 # Con la versión limpia, tag-push funciona.
+git checkout -q develop
 run_cv release-prep --apply
+git push -q
+git checkout -q main
+git merge -q --ff-only develop
 run_cv tag-push 1.0.0
 assert_eq "pushed=1.0.0" "$OUT" "tag-push con versión limpia"
 

@@ -15,10 +15,12 @@ run_cv next-tag test
 assert_eq 1 "$RC" "test sin RC ni tipo: falla"
 assert_contains "$ERRO" "falta el tipo" "test sin RC ni tipo: mensaje"
 
+git checkout -q main
 run_cv next-tag prod patch
 assert_eq "tag=2.4.1" "$(nohead)" "prod patch sin RC"
 run_cv next-tag prod
 assert_eq 1 "$RC" "prod sin RC ni tipo: falla"
+git checkout -q develop
 
 git tag 2.5.0-rc.1
 run_cv next-tag test
@@ -26,6 +28,7 @@ assert_eq "tag=2.5.0-rc.2" "$(nohead)" "RC abierto: continúa con rc.2 sin tipo"
 run_cv next-tag test major
 assert_eq "tag=2.5.0-rc.2" "$(nohead)" "RC abierto: el tipo se ignora"
 
+git checkout -q main
 add_file a.txt 1; commit_all "uno"
 git tag 2.5.0-rc.2
 add_file b.txt 2; commit_all "dos"
