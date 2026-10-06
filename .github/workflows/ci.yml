@@ -23,5 +23,5 @@ jobs:
       - name: shellcheck
         if: matrix.os == 'ubuntu-latest'
         run: |
-          shellcheck -s sh -S warning scripts/cephal-version scripts/sync.sh
+          shellcheck -s sh -S warning scripts/cephal-version scripts/sync.sh scripts/check-version.sh
           shellcheck -s sh -S warning -e SC1090,SC1091,SC2034 tests/*.sh

@@ -58,10 +58,11 @@ assert_contains() {
   esac
 }
 
-# Ejecuta el script; deja OUT, ERRO y RC.
+# Ejecuta el script; deja OUT, ERRO y RC. Vacía CEPHAL_VERSION_SOURCED porque
+# `VAR=1 . script` la deja exportada en sh y el script quedaría sin ejecutar `main`.
 run_cv() {
   ERRF=${ERRF:-$(mktemp)}
-  OUT=$(sh "$CV" "$@" 2>"$ERRF")
+  OUT=$(CEPHAL_VERSION_SOURCED='' sh "$CV" "$@" 2>"$ERRF")
   RC=$?
   ERRO=$(cat "$ERRF")
 }

@@ -251,6 +251,21 @@ chart_app_version() {
   ' "$2"
 }
 
+# Quita ceros a la izquierda ("08" → "8"): sh interpreta "08" como octal inválido en $(( )).
+strip_zeros() {
+  sz=${1#"${1%%[!0]*}"}
+  printf '%s\n' "${sz:-0}"
+}
+
+# Retorna 0 si $1 no contiene saltos de línea (grep -E valida línea por línea).
+one_line() {
+  case "$1" in
+    *'
+'*) return 1 ;;
+  esac
+  return 0
+}
+
 # Sube x.y.z[-SNAPSHOT] según el tipo (patch|minor|major); conserva -SNAPSHOT.
 semver_bump() {
   sb_v=$1
@@ -268,10 +283,10 @@ semver_bump() {
     fi
     die "versión no semver: $1"
   fi
-  sb_maj=${sb_v%%.*}
+  sb_maj=$(strip_zeros "${sb_v%%.*}")
   sb_rest=${sb_v#*.}
-  sb_min=${sb_rest%%.*}
-  sb_pat=${sb_rest#*.}
+  sb_min=$(strip_zeros "${sb_rest%%.*}")
+  sb_pat=$(strip_zeros "${sb_rest#*.}")
   case "$2" in
     patch) sb_pat=$((sb_pat + 1)) ;;
     minor)
@@ -404,7 +419,8 @@ cmd_check() {
   ck_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
   require_origin_upstream "$ck_branch"
   [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
-  git fetch -q --tags origin 2>/dev/null || die "no se pudo consultar origin"
+  # Sin -q: con -q git también calla el motivo de un rechazo (ej. "would clobber existing tag").
+  ck_err=$(git fetch --tags origin 2>&1) || die "no se pudo consultar origin: $ck_err"
   ck_counts=$(git rev-list --left-right --count 'HEAD...@{u}')
   if [ "$ck_counts" != "$(printf '0\t0')" ]; then
     ck_ahead=${ck_counts%%[[:space:]]*}
@@ -425,6 +441,7 @@ cmd_bump() {
   bp_dev=$(develop_branch)
   [ "$bp_branch" = "$bp_dev" ] || die "estás en $bp_branch; el bump se hace en $bp_dev"
   bp_from=$(get_version) || exit 1
+  one_line "$bp_arg" || die "versión inválida: contiene saltos de línea"
   if printf '%s\n' "$bp_arg" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?$'; then
     bp_to=$bp_arg
   else
@@ -462,7 +479,15 @@ cmd_release_prep() {
 cmd_tag_push() {
   tp_tag=${1:-}
   [ -n "$tp_tag" ] || die "uso: tag-push <tag>"
-  printf '%s\n' "$tp_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$' || die "formato de tag inválido: $tp_tag"
+  if ! one_line "$tp_tag" || ! printf '%s\n' "$tp_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+    die "formato de tag inválido: $tp_tag"
+  fi
+  # El pipeline falla en un tag si la versión de la app tiene -SNAPSHOT (solo si el lenguaje es detectable).
+  if tp_v=$(get_version 2>/dev/null); then
+    case "$tp_v" in
+      *-SNAPSHOT) die "la versión de la app es $tp_v: un tag requiere x.y.z (usá release-prep --apply)" ;;
+    esac
+  fi
   tp_branch=$(git symbolic-ref --short -q HEAD) || die "HEAD desacoplado, pasate a una rama"
   require_origin_upstream "$tp_branch"
   [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"

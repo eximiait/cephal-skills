@@ -6,8 +6,10 @@ description: Sube la versión de la app (pom, gradle, npm o pnpm) y alinea appVe
 # Subir la versión de la app
 
 `CV` es el script junto a este archivo, con el proyecto como directorio actual:
-`sh <esta carpeta>/scripts/cephal-version`. En PowerShell:
-`powershell -NoProfile -ExecutionPolicy Bypass -File <esta carpeta>/scripts/cephal-version.ps1`.
+`sh "<esta carpeta>/scripts/cephal-version"`. En PowerShell:
+`powershell -NoProfile -ExecutionPolicy Bypass -File "<esta carpeta>/scripts/cephal-version.ps1"`.
+Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaje y anteponé `--lang <maven|gradle|npm|pnpm>` a cada subcomando.
+Si una salida trae `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
 Mostrá solo lo imprescindible.
 
 1. `CV context`. Si falla, mostrá el error y terminá.

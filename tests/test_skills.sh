@@ -14,6 +14,10 @@ for s in $SKILLS; do
   [ "$n" -le 60 ] && l=ok || l="$n líneas"
   assert_eq ok "$l" "$s: ≤ 60 líneas"
   assert_eq yes "$(grep -q 'scripts/cephal-version' "$f" 2>/dev/null && echo yes || echo no)" "$s: referencia el script"
+  assert_eq yes "$(grep -qF 'sh "<esta carpeta>/scripts/cephal-version"' "$f" 2>/dev/null && echo yes || echo no)" "$s: ruta del script entre comillas"
+  assert_eq yes "$(grep -qF -- '-File "<esta carpeta>/scripts/cephal-version.ps1"' "$f" 2>/dev/null && echo yes || echo no)" "$s: ruta del wrapper entre comillas"
+  assert_eq yes "$(grep -qF -- '--lang' "$f" 2>/dev/null && echo yes || echo no)" "$s: explica --lang"
+  assert_eq yes "$(grep -qF 'chart=skipped' "$f" 2>/dev/null && echo yes || echo no)" "$s: avisa chart=skipped"
   assert_eq same "$(cmp -s scripts/cephal-version "skills/$s/scripts/cephal-version" && echo same || echo differ)" "$s: copia del script"
   assert_eq same "$(cmp -s scripts/cephal-version.ps1 "skills/$s/scripts/cephal-version.ps1" && echo same || echo differ)" "$s: copia del wrapper"
 done
