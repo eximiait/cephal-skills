@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 - 2026-10-06
+
+- Nueva skill `show-versioning-flow` (`/cephal:show-versioning-flow`): muestra en la terminal, en ASCII, el flujo de ramas y tags: qué pasa con un push a una feature o a `develop`, con un tag RC y con un tag final, y desde qué rama sale cada uno. Usa las ramas configuradas y marca el estado del repo (último final, RC abierto, rama actual).
+- Nuevo subcomando `flow` en `cephal-version` (solo muestra, no cambia nada).
+
 ## 0.3.0 - 2026-10-06
 
 - `deploy-prod`: la versión de prod se decide en la rama de desarrollo y viaja en `Chart.yaml` por el MR; en `main` el tag es exactamente esa versión, así el chart y el tag siempre coinciden. Si `Chart.yaml` ya tiene una versión liberable, se usa sin preguntar.

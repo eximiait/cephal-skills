@@ -62,7 +62,7 @@ sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync: restaura las
 
 # manifiestos
 assert_eq yes "$(grep -q '"name": "cephal"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: name"
-assert_eq yes "$(grep -q '"version": "0.3.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.3.0"
+assert_eq yes "$(grep -q '"version": "0.4.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.4.0"
 assert_eq yes "$(grep -q '"name": "cephal-skills"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: name"
 assert_eq yes "$(grep -q '"source": "./"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: source"
 if command -v node >/dev/null 2>&1; then
@@ -91,5 +91,22 @@ done
 for img in bump-app-version deploy-test deploy-prod; do
   assert_eq yes "$(grep -qF "docs/img/$img.svg" README.md && [ -f "docs/img/$img.svg" ] && echo yes || echo no)" "README: imagen $img referenciada y presente"
 done
+
+# show-versioning-flow: solo muestra, no cambia nada
+s=show-versioning-flow
+f="skills/$s/SKILL.md"
+assert_eq "name: $s" "$(sed -n 2p "$f" 2>/dev/null)" "$s: name igual al directorio"
+assert_eq "---" "$(sed -n 4p "$f" 2>/dev/null)" "$s: frontmatter cierra"
+n=$(wc -l < "$f" 2>/dev/null || echo 999)
+[ "$n" -le 30 ] && l=ok || l="$n líneas"
+assert_eq ok "$l" "$s: ≤ 30 líneas"
+assert_eq yes "$(grep -qF 'sh "<esta carpeta>/scripts/cephal-version"' "$f" && echo yes || echo no)" "$s: ruta del script entre comillas"
+assert_eq yes "$(grep -qF -- '-File "<esta carpeta>/scripts/cephal-version.ps1"' "$f" && echo yes || echo no)" "$s: ruta del wrapper entre comillas"
+assert_eq yes "$(grep -qF '`CV flow`' "$f" && echo yes || echo no)" "$s: corre flow"
+assert_eq yes "$(grep -qF 'sin resumirla' "$f" && echo yes || echo no)" "$s: muestra la salida tal cual"
+assert_eq "" "$(grep -E 'glab|mr-|tag-push|push-branch' "$f")" "$s: no pushea ni usa glab"
+assert_eq same "$(cmp -s scripts/cephal-version "skills/$s/scripts/cephal-version" && echo same || echo differ)" "$s: copia del script"
+assert_eq same "$(cmp -s scripts/cephal-version.ps1 "skills/$s/scripts/cephal-version.ps1" && echo same || echo differ)" "$s: copia del wrapper"
+assert_eq yes "$(grep -qF 'show-versioning-flow' README.md && echo yes || echo no)" "README: lista show-versioning-flow"
 
 finish

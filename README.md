@@ -7,6 +7,7 @@ Skills para agentes de código (Claude Code, Codex, OpenCode y otros) que ayudan
 | `bump-app-version` | Sube la versión de la app (pom, gradle, npm, pnpm) y alinea `appVersion` de `Chart.yaml`. Solo en la rama de desarrollo. No commitea. |
 | `deploy-test` | Crea y pushea el tag `x.y.z-rc.n` (despliega a test). No corre en `main`. |
 | `deploy-prod` | Integra `develop` en `main` por MR y crea el tag `x.y.z` en `main` (habilita prod). Puede salir sin RC previo. |
+| `show-versioning-flow` | Muestra en la terminal el flujo de ramas, versionado y tags: qué pasa con un push a una feature o a `develop`, con un tag RC y con un tag final, y desde qué rama sale cada uno. No cambia nada. |
 
 Nunca se pushea sin confirmación. Los commits y tags usan tu identidad git.
 
@@ -34,7 +35,7 @@ Actualizar: `/plugin marketplace update cephal-skills` (Claude Code) o `npx skil
 
 ## Uso
 
-Desde la raíz del proyecto, pedile al agente la skill (en Claude Code: `/cephal:bump-app-version`, `/cephal:deploy-test`, `/cephal:deploy-prod`). Cada skill pregunta solo lo necesario, muestra **la diff de lo que cambia** coloreada como `git diff` y una línea por resultado. Nada se pushea sin tu confirmación.
+Desde la raíz del proyecto, pedile al agente la skill (en Claude Code: `/cephal:bump-app-version`, `/cephal:deploy-test`, `/cephal:deploy-prod`, `/cephal:show-versioning-flow`). Cada skill pregunta solo lo necesario, muestra **la diff de lo que cambia** coloreada como `git diff` y una línea por resultado. Nada se pushea sin tu confirmación.
 
 ### Subir la versión de la app
 
@@ -53,6 +54,37 @@ Desde cualquier rama menos `main`: si la versión tiene `-SNAPSHOT` ofrece quita
 Desde `develop`: decide la versión (queda en `Chart.yaml`), crea y sigue el MR a `main` y, ya en `main`, crea el tag `x.y.z`.
 
 ![deploy-prod](docs/img/deploy-prod.svg)
+
+### Ver el flujo de versionado
+
+En cualquier rama: muestra qué pasa ante un push a una feature o a `develop`, un tag RC y un tag final, y desde qué rama sale cada tag. Marca el estado del repo (último final, RC abierto y la rama en la que estás) y usa las ramas configuradas con `DEVELOP_BRANCH` y `MAIN_BRANCH`. No cambia nada.
+
+```
+ mi-app | app 1.3.1 | último final 1.0.0 | RC abierto 1.1.0
+
+ main       ------------------------------*-------->  [4] tag x.y.z -> prod (solo desde main)
+                                          ^
+                                          | MR develop -> main (deploy-prod)
+ develop    ---*--------*---------*-------*-------->  [2] push -> dev
+                \      /          |
+                 \    /           +-- [3] tag x.y.z-rc.n -> test (deploy-test)
+ feature/x        *--*
+                  [1] push: solo valida, no publica
+
+ Evento                Desde                  Publica                             Despliega
+ [1] push a feature/*  feature/*              nada (el build solo valida)         -
+ [2] push a develop    develop                imagen x.y.z-develop + chart        dev (auto)
+ [3] tag x.y.z-rc.n    cualquiera menos main  imagen x.y.z (o la reusa) + chart   dev auto, test manual
+ [4] tag x.y.z         main                   imagen x.y.z (o la reusa) + chart   dev auto, test y prod manual
+
+ Estás en develop: en develop se sube la versión (bump-app-version), se crea el RC (deploy-test) y se arranca deploy-prod.
+
+ Reglas
+  - La versión de la app se sube en develop (bump-app-version); un tag no puede llevar -SNAPSHOT.
+  - La versión del chart es el tag de Git; deploy-prod la deja en Chart.yaml y viaja por el MR.
+  - El tag final sale solo de main y después del MR; el RC, de cualquier rama menos main.
+  - Los tags no se mueven ni se pisan; nada se pushea sin tu confirmación.
+```
 
 Las diffs de las imágenes son la salida real del script; las demás líneas muestran lo que responde el agente según la skill. Se regeneran con `sh docs/img/generar.sh`.
 

@@ -1001,6 +1001,56 @@ cmd_release_target() {
   if [ -n "$rt_tag" ]; then kv tagged "$rt_tag"; fi
 }
 
+fl_max() { # mayor entre un número y la longitud de cada argumento restante
+  fl_n=$1
+  shift
+  for fl_s in "$@"; do [ "${#fl_s}" -le "$fl_n" ] || fl_n=${#fl_s}; done
+  printf '%s\n' "$fl_n"
+}
+
+# flow: diagrama en texto (ASCII) de ramas, tags y despliegues. Salida para leer, no key=value.
+cmd_flow() {
+  fl_d=$(develop_branch)
+  fl_m=$(main_branch)
+  fl_ver=$(get_version 2>/dev/null) || fl_ver="sin detectar"
+  fl_final=$(last_final)
+  [ "$fl_final" = "0.0.0" ] && fl_final=ninguno
+  fl_open=$(open_rc_base)
+  fl_cur=$(current_branch)
+  fl_w=$(fl_max 9 "$fl_d" "$fl_m")
+  fl_any="cualquiera menos $fl_m"
+  fl_ew=$(fl_max 20 "[2] push a $fl_d")
+  fl_dw=$(fl_max 9 "$fl_d" "$fl_m" "$fl_any")
+  printf ' %s | app %s | último final %s | RC abierto %s\n\n' "$(basename "$(pwd)")" "$fl_ver" "$fl_final" "${fl_open:-ninguno}"
+  printf ' %-*s  %s\n' "$fl_w" "$fl_m" "------------------------------*-------->  [4] tag x.y.z -> prod (solo desde $fl_m)"
+  printf ' %-*s  %s\n' "$fl_w" "" "                              ^"
+  printf ' %-*s  %s\n' "$fl_w" "" "                              | MR $fl_d -> $fl_m (deploy-prod)"
+  printf ' %-*s  %s\n' "$fl_w" "$fl_d" "---*--------*---------*-------*-------->  [2] push -> dev"
+  printf ' %-*s  %s\n' "$fl_w" "" '    \      /          |'
+  printf ' %-*s  %s\n' "$fl_w" "" '     \    /           +-- [3] tag x.y.z-rc.n -> test (deploy-test)'
+  printf ' %-*s  %s\n' "$fl_w" "feature/x" "      *--*"
+  printf ' %-*s  %s\n' "$fl_w" "" "      [1] push: solo valida, no publica"
+  printf '\n'
+  fl_t() { printf ' %-*s  %-*s  %-34s  %s\n' "$fl_ew" "$1" "$fl_dw" "$2" "$3" "$4"; }
+  fl_t "Evento" "Desde" "Publica" "Despliega"
+  fl_t "[1] push a feature/*" "feature/*" "nada (el build solo valida)" "-"
+  fl_t "[2] push a $fl_d" "$fl_d" "imagen x.y.z-develop + chart" "dev (auto)"
+  fl_t "[3] tag x.y.z-rc.n" "$fl_any" "imagen x.y.z (o la reusa) + chart" "dev auto, test manual"
+  fl_t "[4] tag x.y.z" "$fl_m" "imagen x.y.z (o la reusa) + chart" "dev auto, test y prod manual"
+  printf '\n'
+  case "$fl_cur" in
+    "$fl_m") fl_here="en $fl_m solo se crea el tag x.y.z (deploy-prod); deploy-test no corre acá" ;;
+    "$fl_d") fl_here="en $fl_d se sube la versión (bump-app-version), se crea el RC (deploy-test) y se arranca deploy-prod" ;;
+    *) fl_here="desde $fl_cur se crea el RC (deploy-test); bump-app-version y deploy-prod se hacen en $fl_d" ;;
+  esac
+  printf ' Estás en %s: %s.\n\n' "$fl_cur" "$fl_here"
+  printf ' Reglas\n'
+  printf '  - La versión de la app se sube en %s (bump-app-version); un tag no puede llevar -SNAPSHOT.\n' "$fl_d"
+  printf '  - La versión del chart es el tag de Git; deploy-prod la deja en Chart.yaml y viaja por el MR.\n'
+  printf '  - El tag final sale solo de %s y después del MR; el RC, de cualquier rama menos %s.\n' "$fl_m" "$fl_m"
+  printf '  - Los tags no se mueven ni se pisan; nada se pushea sin tu confirmación.\n'
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -1008,7 +1058,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|chart-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge|release-target>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|chart-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link|mr-find|mr-create|mr-status|mr-wait|mr-merge|release-target|flow>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
