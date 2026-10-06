@@ -37,3 +37,5 @@ finally {
 }
 if ($fails -gt 0) { exit 1 }
 Write-Output 'test_wrapper.ps1: OK'
+# Sin esto, el paso hereda el $LASTEXITCODE del último comando nativo (el subcomando inválido devuelve 1 a propósito).
+exit 0
