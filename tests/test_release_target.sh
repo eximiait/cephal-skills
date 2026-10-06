@@ -30,7 +30,8 @@ assert_eq 1 "$RC" "archivo modificado: falla"
 assert_contains "$ERRO" "hay cambios sin commitear" "archivo modificado: mensaje"
 git checkout -q -- README.md
 
-# integrado: pasa a main y la actualiza
+# integrado: pasa a main y la actualiza (con origin/main, aunque la rama local no tenga upstream)
+git branch -q --unset-upstream main
 run_cv release-target
 assert_eq 0 "$RC" "integrado: ok"
 git fetch -q origin
@@ -55,6 +56,21 @@ commit_all "local"
 run_cv release-target
 assert_eq 1 "$RC" "commit local: falla"
 assert_contains "$ERRO" "commits locales" "commit local: mensaje"
+assert_contains "$ERRO" "el checkout quedó en main" "commit local: avisa dónde quedó el checkout"
+
+# main local divergida de origin/main: falla sin descartar el commit local
+LOCAL=$(git rev-parse HEAD)
+(
+  cd "$T/other" || exit 1
+  git commit -q --allow-empty -m "otro merge en GitLab"
+  git push -q origin main
+) || exit 1
+run_cv release-target
+assert_eq 1 "$RC" "main divergida: falla"
+assert_contains "$ERRO" "no se pudo actualizar main" "main divergida: mensaje"
+assert_contains "$ERRO" "el checkout quedó en main" "main divergida: avisa dónde quedó el checkout"
+assert_eq "$LOCAL" "$(git rev-parse HEAD)" "main divergida: conserva el commit local"
+assert_eq main "$(git symbolic-ref --short HEAD)" "main divergida: sigue en main"
 
 # main solo existe en origin: se crea la rama local
 git reset -q --hard origin/main
@@ -64,5 +80,20 @@ run_cv release-target
 assert_eq 0 "$RC" "sin main local: ok"
 assert_eq main "$(git symbolic-ref --short HEAD)" "sin main local: checkout en main"
 assert_eq "origin/main" "$(git rev-parse --abbrev-ref 'main@{u}')" "sin main local: rastrea origin/main"
+
+# ramas configuradas que no existen en origin: no se confunde con "falta integrar el MR"
+git checkout -q develop
+add_file .gitlab-ci.yml 'variables:
+  DEVELOP_BRANCH: desarrollo'
+run_cv release-target
+assert_eq 1 "$RC" "origin/desarrollo inexistente: falla"
+assert_contains "$ERRO" "no existe origin/desarrollo; revisá DEVELOP_BRANCH/MAIN_BRANCH" "origin/desarrollo inexistente: mensaje"
+assert_eq develop "$(git symbolic-ref --short HEAD)" "origin/desarrollo inexistente: no cambia de rama"
+add_file .gitlab-ci.yml 'variables:
+  MAIN_BRANCH: produccion'
+run_cv release-target
+assert_eq 1 "$RC" "origin/produccion inexistente: falla"
+assert_contains "$ERRO" "no existe origin/produccion; revisá DEVELOP_BRANCH/MAIN_BRANCH" "origin/produccion inexistente: mensaje"
+rm -f .gitlab-ci.yml
 
 finish
