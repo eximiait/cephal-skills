@@ -25,7 +25,7 @@ Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR 
        - `failed`, `canceled`, `skipped`, `manual`: mostrá `state` y `url` y terminá.
        - `none`: sin pipeline, solo el dev puede mergear; avisá y terminá.
        - `success`: preguntá `¿Mergeo yo o lo hacés vos?`. Si yo: confirmación y `CV mr-merge <iid> <sha>` (`sha` de `mr-status`). Si el dev: repetí `CV mr-wait <iid> merged` mientras `timeout=yes`, con el mismo límite y salida; con `state=closed` decí `El MR se cerró sin mergear` y terminá.
-     - Si un `CV mr-*` falla (`mr-find`, `mr-create`, `mr-status`, `mr-wait`, `mr-merge`), decilo en una línea con el error y seguí en modo manual desde ahí, sin terminar: *Preparar* si aún no lo hiciste y *Manual*.
+     - Si un `CV mr-*` falla (`mr-find`, `mr-create`, `mr-status`, `mr-wait`, `mr-merge`), decilo en una línea con el error y seguí en modo manual desde ahí, sin terminar: *Preparar* (no cambia nada sin confirmación: repetirlo es seguro) y *Manual*.
    - Con el MR mergeado, volvé al paso 2.
 4. El checkout ahora está en `main_branch` (decilo). `release-target` trae `head` y, si existe, `tagged`. Con `tagged`: `Ya liberado: <tag>` y terminá.
 5. `CV release-prep`. Con `snapshot=yes`: destacá **⚠️ Así no se puede liberar: quitá -SNAPSHOT en develop y mergealo por MR**, sin commitear, y terminá.

@@ -8,6 +8,7 @@
 - Sin `glab` o sin sesión iniciada, `deploy-prod` funciona en modo manual: indica los pasos del MR para que los haga el dev.
 - `tag-push` de un tag final exige que `main` coincida con `origin/main`: nunca empuja a `main` commits que no llegaron por MR.
 - `mr-merge` nunca borra la rama de desarrollo: pasa `--remove-source-branch=false` y se niega si el MR tiene activado "Delete source branch".
+- `release-target` configura el upstream de `main` (`origin/main`) si la rama local no lo tiene, para que el tag final no falle al último paso.
 
 ## 0.1.0 - 2026-10-05
 

@@ -834,6 +834,11 @@ cmd_release_target() {
   # El fetch ya corrió: alcanza con un fast-forward a origin/<main> (no depende del upstream de la rama).
   rt_err=$(git merge --ff-only "origin/$rt_main" 2>&1) || die "el checkout quedó en $rt_main; no se pudo actualizar $rt_main con origin/$rt_main (¿divergió?): $rt_err"
   [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$rt_main")" ] || die "$rt_main tiene commits locales sin pushear; no coincide con origin/$rt_main (el checkout quedó en $rt_main)"
+  # Una main creada a mano puede no rastrear origin; tag-push lo exige al final del flujo.
+  if ! git rev-parse --abbrev-ref --symbolic-full-name "$rt_main@{u}" >/dev/null 2>&1; then
+    rt_err=$(git branch --set-upstream-to="origin/$rt_main" "$rt_main" 2>&1) || die "no se pudo configurar el upstream de $rt_main: $rt_err"
+    kv upstream "origin/$rt_main"
+  fi
   kv branch "$rt_main"
   kv head "$(git rev-parse --short HEAD)"
   rt_tag=$(git tag --points-at HEAD | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | max_semver)

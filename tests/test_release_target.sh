@@ -30,13 +30,14 @@ assert_eq 1 "$RC" "archivo modificado: falla"
 assert_contains "$ERRO" "hay cambios sin commitear" "archivo modificado: mensaje"
 git checkout -q -- README.md
 
-# integrado: pasa a main y la actualiza (con origin/main, aunque la rama local no tenga upstream)
+# integrado: pasa a main, la actualiza con origin/main y, como la rama local no tiene upstream, se lo configura
 git branch -q --unset-upstream main
 run_cv release-target
 assert_eq 0 "$RC" "integrado: ok"
 git fetch -q origin
 HEADSHA=$(git rev-parse --short origin/main)
-assert_eq "branch=main
+assert_eq "upstream=origin/main
+branch=main
 head=$HEADSHA" "$OUT" "integrado: salida"
 assert_eq main "$(git symbolic-ref --short HEAD)" "integrado: checkout en main"
 assert_eq "$(git rev-parse origin/main)" "$(git rev-parse HEAD)" "integrado: HEAD igual a origin/main"
@@ -80,6 +81,14 @@ run_cv release-target
 assert_eq 0 "$RC" "sin main local: ok"
 assert_eq main "$(git symbolic-ref --short HEAD)" "sin main local: checkout en main"
 assert_eq "origin/main" "$(git rev-parse --abbrev-ref 'main@{u}')" "sin main local: rastrea origin/main"
+
+# main local sin upstream (creada a mano): release-target le configura origin/main
+git checkout -q develop
+git branch -q --unset-upstream main
+run_cv release-target
+assert_eq 0 "$RC" "main sin upstream: ok"
+assert_contains "$OUT" "upstream=origin/main" "main sin upstream: informa el upstream configurado"
+assert_eq "origin/main" "$(git rev-parse --abbrev-ref 'main@{u}')" "main sin upstream: queda rastreando origin/main"
 
 # ramas configuradas que no existen en origin: no se confunde con "falta integrar el MR"
 git checkout -q develop

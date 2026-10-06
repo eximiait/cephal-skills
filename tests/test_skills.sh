@@ -72,4 +72,8 @@ if command -v node >/dev/null 2>&1; then
   done
 fi
 
+# Preparar se puede repetir: la skill no depende de que el agente recuerde si ya lo corrió
+assert_eq no "$(grep -qF 'si aún no lo hiciste' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: Preparar no depende de recordar el estado"
+assert_eq yes "$(grep -qF 'repetirlo es seguro' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: aclara que Preparar se puede repetir"
+
 finish
