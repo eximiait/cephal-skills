@@ -28,10 +28,17 @@ for s in deploy-test deploy-prod; do
   assert_eq yes "$(grep -qF 'Tag <tag> sobre <head>' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: usa head= de next-tag"
   assert_eq yes "$(grep -qF 'queda local' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: aclara que sin confirmación el commit queda local"
 done
+for k in mr-find mr-create mr-wait mr-merge mr-link release-target gitlab-mode push-branch CEPHAL_WAIT_MINUTES; do
+  assert_eq yes "$(grep -qF -- "$k" skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: menciona $k"
+done
+assert_eq yes "$(grep -qF 'main_branch' skills/deploy-test/SKILL.md && echo yes || echo no)" "deploy-test: no crea RC en main_branch"
+for s in $SKILLS; do
+  assert_eq yes "$(grep -qF 'sobrescribas' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: tags inmutables"
+done
 assert_eq yes "$(grep -qi 'sin commitear\|no commite' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: no commitea"
 
 # nunca force ni borrar tags
-assert_eq "" "$(grep -rE -- '--force|push -f|tag -f' scripts skills 2>/dev/null)" "sin --force, push -f ni tag -f"
+assert_eq "" "$(grep -rE -- '--force|push -f|tag -f' scripts skills 2>/dev/null | grep -vF 'ni ofrezcas')" "sin --force, push -f ni tag -f"
 
 # sync
 sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync --check: copias al día"

@@ -12,7 +12,7 @@ Citá la ruta: puede tener espacios. Si `CV` pide `--lang`, preguntá el lenguaj
 Si una salida trae `chart=skipped`, avisá: `No se encontró Chart.yaml: appVersion no se alineó.`
 Mostrá solo lo imprescindible.
 
-1. `CV context` y `CV check`. Si alguno falla, mostrá el error y terminá.
+1. `CV context` y `CV check`. Si alguno falla, mostrá el error y terminá. Si `branch` es `main_branch`, decí `En <main_branch> no se crean RC` y terminá.
 2. `CV release-prep`. Si `snapshot=yes`:
    - Destacá: **⚠️ La versión tiene -SNAPSHOT: así no se puede pasar a testing** (el pipeline falla en un tag).
    - Proponé quitarlo (`<release>`) en el archivo del lenguaje y en `appVersion`, con el commit `Release app <release>`, y preguntá si lo aplicás.
@@ -22,4 +22,5 @@ Mostrá solo lo imprescindible.
 5. Mostrá `Tag <tag> sobre <head> (<branch>)`; si hubo commit de release, aclará que se pushea junto con el tag. Pedí confirmación explícita.
 6. Solo con el sí: `CV tag-push <tag>` e informá `pushed=<tag>`. Sin el sí no pushees: el commit de release, si lo hubo, queda local.
 
+Nunca muevas, borres ni sobrescribas un tag, ni ofrezcas `--force`; si el tag existe, informalo y terminá.
 Nunca pushees sin confirmación. Commits y tags llevan la identidad git del dev: sin firmas ni menciones al agente.

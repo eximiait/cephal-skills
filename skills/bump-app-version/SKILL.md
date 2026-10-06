@@ -19,3 +19,4 @@ Mostrá solo lo imprescindible.
 5. Cerrá con una línea: `Listo. Commiteá los cambios.`
 
 No commitees ni pushees: eso lo decide el dev.
+Nunca muevas, borres ni sobrescribas un tag, ni ofrezcas `--force`; si el tag existe, informalo y terminá.
