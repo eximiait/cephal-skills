@@ -77,7 +77,8 @@ finish() {
 # glab falso: crea $T/bin/glab y lo antepone al PATH. Cada invocación agrega "$*" a $T/glab.log.
 # Respuestas desde $T/glab/: auth.rc (código de `auth status`, por defecto 0), list.json (`mr list`),
 # view.<n>.json (`mr view`, en orden y repitiendo el último), create.out (`mr create`),
-# merge.out + merge.rc (`mr merge`, rc por defecto 0).
+# merge.out + merge.rc (`mr merge`, rc por defecto 0). Opcional auth.host: si existe, `auth status`
+# sale 0 solo si --hostname coincide con su contenido (auth.rc se ignora).
 fake_glab() {
   mkdir -p "$T/bin" "$T/glab"
   : > "$T/glab.log"
@@ -89,7 +90,19 @@ printf '%s\n' "$*" >> "$B/glab.log"
 rc_of() { if [ -f "$D/$1" ]; then cat "$D/$1"; else echo 0; fi; }
 out_of() { if [ -f "$D/$1" ]; then cat "$D/$1"; fi; }
 case "$1 ${2:-}" in
-  "auth status") exit "$(rc_of auth.rc)" ;;
+  "auth status")
+    if [ -f "$D/auth.host" ]; then
+      h=""
+      prev=""
+      for a in "$@"; do
+        [ "$prev" = --hostname ] && h=$a
+        prev=$a
+      done
+      [ "$h" = "$(cat "$D/auth.host")" ] && exit 0
+      exit 1
+    fi
+    exit "$(rc_of auth.rc)"
+    ;;
   "mr list") out_of list.json ;;
   "mr view")
     n=0

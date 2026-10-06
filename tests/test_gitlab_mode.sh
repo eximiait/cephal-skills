@@ -23,6 +23,15 @@ printf '1\n' > "$T/glab/auth.rc"
 run_cv gitlab-mode
 assert_eq "gitlab=manual" "$OUT" "auth fallida: manual"
 
+# sesión de glab solo en otro host
+printf 'other.example.com\n' > "$T/glab/auth.host"
+run_cv gitlab-mode
+assert_eq "gitlab=manual" "$OUT" "glab autenticado en otro host: manual"
+printf 'gitlab.example.com\n' > "$T/glab/auth.host"
+run_cv gitlab-mode
+assert_eq "gitlab=glab" "$OUT" "glab autenticado en el host del origin: glab"
+rm -f "$T/glab/auth.host"
+
 # origin local (sin host): manual y sin llamar a glab
 printf '0\n' > "$T/glab/auth.rc"
 : > "$T/glab.log"
