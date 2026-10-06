@@ -251,6 +251,98 @@ chart_app_version() {
   ' "$2"
 }
 
+# Sube x.y.z[-SNAPSHOT] según el tipo (patch|minor|major); conserva -SNAPSHOT.
+semver_bump() {
+  sb_v=$1
+  sb_suffix=""
+  case "$sb_v" in
+    *-SNAPSHOT)
+      sb_suffix=-SNAPSHOT
+      sb_v=${sb_v%-SNAPSHOT}
+      ;;
+  esac
+  if ! printf '%s\n' "$sb_v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+    if printf '%s\n' "$sb_v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+-'; then
+      sb_rest=${sb_v#*-}
+      die "sufijo no soportado: -$sb_rest"
+    fi
+    die "versión no semver: $1"
+  fi
+  sb_maj=${sb_v%%.*}
+  sb_rest=${sb_v#*.}
+  sb_min=${sb_rest%%.*}
+  sb_pat=${sb_rest#*.}
+  case "$2" in
+    patch) sb_pat=$((sb_pat + 1)) ;;
+    minor)
+      sb_min=$((sb_min + 1))
+      sb_pat=0
+      ;;
+    major)
+      sb_maj=$((sb_maj + 1))
+      sb_min=0
+      sb_pat=0
+      ;;
+    *) die "tipo inválido: $2 (patch|minor|major)" ;;
+  esac
+  printf '%s.%s.%s%s\n' "$sb_maj" "$sb_min" "$sb_pat" "$sb_suffix"
+}
+
+# Retorna 0 si $1 > $2 (x.y.z, comparación numérica).
+semver_gt() {
+  awk -v a="$1" -v b="$2" 'BEGIN {
+    split(a, x, "."); split(b, y, ".")
+    for (i = 1; i <= 3; i++) {
+      if (x[i] + 0 > y[i] + 0) exit 0
+      if (x[i] + 0 < y[i] + 0) exit 1
+    }
+    exit 1
+  }'
+}
+
+# Entrada: una versión x.y.z por línea. Salida: la mayor (vacío si no hay).
+max_semver() {
+  awk '
+    function gt(a, b,   x, y, i) {
+      split(a, x, "."); split(b, y, ".")
+      for (i = 1; i <= 3; i++) {
+        if (x[i] + 0 > y[i] + 0) return 1
+        if (x[i] + 0 < y[i] + 0) return 0
+      }
+      return 0
+    }
+    NF { if (best == "" || gt($0, best)) best = $0 }
+    END { if (best != "") print best }
+  '
+}
+
+# Mayor tag final x.y.z, o 0.0.0 si no hay.
+last_final() {
+  lf=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | max_semver)
+  printf '%s\n' "${lf:-0.0.0}"
+}
+
+# Mayor base con tag x.y.z-rc.n, sin tag final de esa base y mayor que el último final; vacío si no hay.
+open_rc_base() {
+  or_last=$(last_final)
+  or_bases=""
+  for or_t in $(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$'); do
+    or_b=${or_t%-rc.*}
+    if semver_gt "$or_b" "$or_last"; then
+      or_bases="$or_bases$or_b
+"
+    fi
+  done
+  printf '%s' "$or_bases" | max_semver
+}
+
+# Mayor n entre los tags <base>-rc.n (0 si no hay).
+max_rc_n() {
+  mr_esc=$(printf '%s' "$1" | sed 's/\./\\./g')
+  git tag --list "$1-rc.*" | grep -E "^$mr_esc-rc\.[0-9]+$" | sed 's/.*-rc\.//' |
+    awk 'BEGIN { m = 0 } { if ($0 + 0 > m) m = $0 + 0 } END { print m }'
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
