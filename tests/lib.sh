@@ -73,3 +73,67 @@ finish() {
   printf '%s: %s pruebas, %s fallas\n' "$(basename "$0")" "$TESTS" "$FAILS"
   [ "$FAILS" -eq 0 ]
 }
+
+# glab falso: crea $T/bin/glab y lo antepone al PATH. Cada invocación agrega "$*" a $T/glab.log.
+# Respuestas desde $T/glab/: auth.rc (código de `auth status`, por defecto 0), list.json (`mr list`),
+# view.<n>.json (`mr view`, en orden y repitiendo el último), create.out (`mr create`),
+# merge.out + merge.rc (`mr merge`, rc por defecto 0).
+fake_glab() {
+  mkdir -p "$T/bin" "$T/glab"
+  : > "$T/glab.log"
+  cat > "$T/bin/glab" <<'STUB'
+#!/bin/sh
+B=$(cd "$(dirname "$0")/.." && pwd)
+D="$B/glab"
+printf '%s\n' "$*" >> "$B/glab.log"
+rc_of() { if [ -f "$D/$1" ]; then cat "$D/$1"; else echo 0; fi; }
+out_of() { if [ -f "$D/$1" ]; then cat "$D/$1"; fi; }
+case "$1 ${2:-}" in
+  "auth status") exit "$(rc_of auth.rc)" ;;
+  "mr list") out_of list.json ;;
+  "mr view")
+    n=0
+    [ -f "$D/view.count" ] && n=$(cat "$D/view.count")
+    n=$((n + 1))
+    f="$D/view.$n.json"
+    if [ ! -f "$f" ]; then
+      n=$((n - 1))
+      f="$D/view.$n.json"
+    fi
+    echo "$n" > "$D/view.count"
+    [ -f "$f" ] && cat "$f"
+    ;;
+  "mr create") out_of create.out ;;
+  "mr merge")
+    out_of merge.out
+    exit "$(rc_of merge.rc)"
+    ;;
+esac
+exit 0
+STUB
+  chmod +x "$T/bin/glab"
+  PATH="$T/bin:$PATH"
+  export PATH
+}
+
+# Deja un PATH sin glab (aunque haya uno real): quita las entradas que contienen un `glab` ejecutable.
+no_glab() {
+  ng_new=""
+  ng_old=$PATH
+  while [ -n "$ng_old" ]; do
+    case "$ng_old" in
+      *:*)
+        ng_d=${ng_old%%:*}
+        ng_old=${ng_old#*:}
+        ;;
+      *)
+        ng_d=$ng_old
+        ng_old=""
+        ;;
+    esac
+    if [ -x "$ng_d/glab" ] || [ -x "$ng_d/glab.exe" ]; then continue; fi
+    ng_new="${ng_new:+$ng_new:}$ng_d"
+  done
+  PATH=$ng_new
+  export PATH
+}

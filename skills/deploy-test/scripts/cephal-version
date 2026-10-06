@@ -513,6 +513,55 @@ cmd_context() {
   kv open_rc "${cx_open:-none}"
 }
 
+# Origin de git como "host<TAB>ruta<TAB>puerto-web" (puerto solo si es https/http); vacío si no es remoto con host.
+origin_parts() {
+  op_url=$(git remote get-url origin 2>/dev/null) || return 1
+  op_url=${op_url%/}
+  op_port=""
+  case "$op_url" in
+    https://* | http://* | ssh://* | git://*)
+      op_scheme=${op_url%%://*}
+      op_rest=${op_url#*://}
+      op_rest=${op_rest#*@}
+      op_host=${op_rest%%/*}
+      op_path=${op_rest#*/}
+      case "$op_host" in
+        *:*)
+          case "$op_scheme" in https | http) op_port=${op_host#*:} ;; esac
+          op_host=${op_host%%:*}
+          ;;
+      esac
+      [ "$op_path" != "$op_rest" ] || return 1
+      ;;
+    *@*:*)
+      op_rest=${op_url#*@}
+      op_host=${op_rest%%:*}
+      op_path=${op_rest#*:}
+      op_path=${op_path#/}
+      ;;
+    *) return 1 ;;
+  esac
+  op_path=${op_path%.git}
+  [ -n "$op_host" ] && [ -n "$op_path" ] || return 1
+  printf '%s\t%s\t%s\n' "$op_host" "$op_path" "$op_port"
+}
+
+# Host del origin (sin usuario ni puerto); falla si el origin no es remoto con host.
+origin_host() {
+  oh=$(origin_parts) || return 1
+  printf '%s\n' "${oh%%	*}"
+}
+
+# URL web del proyecto: https://<host>/<ruta>, sin .git; falla si el origin no es remoto con host.
+origin_web() {
+  ow=$(origin_parts) || return 1
+  ow_host=${ow%%	*}
+  ow_rest=${ow#*	}
+  ow_path=${ow_rest%%	*}
+  ow_port=${ow_rest#*	}
+  printf 'https://%s%s/%s\n' "$ow_host" "${ow_port:+:$ow_port}" "$ow_path"
+}
+
 # La rama debe rastrear origin/<la misma rama>: es donde empuja tag-push.
 require_origin_upstream() {
   ru_up=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null) || die "la rama $1 no tiene upstream"
@@ -617,6 +666,25 @@ cmd_push_branch() {
   kv pushed_branch "$pb_branch"
 }
 
+# gitlab-mode: `glab` si hay glab con sesión en el host del origin; si no, `manual`.
+cmd_gitlab_mode() {
+  gm_host=$(origin_host) || {
+    kv gitlab manual
+    return 0
+  }
+  if command -v glab >/dev/null 2>&1 && glab auth status --hostname "$gm_host" >/dev/null 2>&1; then
+    kv gitlab glab
+  else
+    kv gitlab manual
+  fi
+}
+
+# mr-link: URL para abrir a mano el MR <develop> → <main> en la web de GitLab.
+cmd_mr_link() {
+  ml_web=$(origin_web) || die "el origin no es un remoto con host: no se puede armar el link"
+  kv mr_link "$ml_web/-/merge_requests/new?merge_request[source_branch]=$(develop_branch)&merge_request[target_branch]=$(main_branch)"
+}
+
 main() {
   LANG_OVERRIDE=""
   if [ "${1:-}" = "--lang" ]; then
@@ -624,7 +692,7 @@ main() {
     LANG_OVERRIDE=$2
     shift 2
   fi
-  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch>"
+  [ $# -ge 1 ] || die "uso: cephal-version [--lang L] <context|check|bump|release-prep|next-tag|tag-push|push-branch|gitlab-mode|mr-link>"
   sub=$1
   shift
   top=$(git rev-parse --show-toplevel 2>/dev/null) || die "no es un repositorio git"
