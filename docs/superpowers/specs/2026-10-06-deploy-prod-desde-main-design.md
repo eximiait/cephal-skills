@@ -32,7 +32,7 @@ Cada corrida detecta en qué paso quedó y continúa; retomarla nunca duplica MR
      - `failed`, `canceled`, `skipped` o `manual`: muestra estado y link, y termina.
      - `none` (sin pipeline): lo informa; solo el dev puede mergear.
      - `success`: pregunta si mergea la skill o el dev. Si la skill: confirmación y `mr-merge`. Si el dev: `mr-wait … merged`.
-2. Con develop contenido en main: `release-target` (checkout de main y `pull --ff-only`). Si `HEAD` ya tiene un tag `x.y.z`: `ya liberado: <tag>` y termina. Si `release-prep` informa `snapshot=yes`: aviso resaltado de que así no se puede liberar y de que el sufijo se quita en develop y se integra por MR; termina sin commitear. Si no: `next-tag prod` (cierra el RC abierto o pregunta el tipo), confirmación y `tag-push`.
+2. Con develop contenido en main: `release-target` (checkout de main y fast-forward a `origin/<main>`). Si `HEAD` ya tiene un tag `x.y.z`: `ya liberado: <tag>` y termina. Si `release-prep` informa `snapshot=yes`: aviso resaltado de que así no se puede liberar y de que el sufijo se quita en develop y se integra por MR; termina sin commitear. Si no: `next-tag prod` (cierra el RC abierto o pregunta el tipo), confirmación y `tag-push` (un tag final exige `HEAD` igual a `origin/<main>`).
 
 **Modo manual** (sin `glab` o sin sesión): en lugar de crear y seguir el MR, `mr-link` da el link para crearlo; el dev avisa cuando está mergeado; `release-target` verifica con git y se sigue con el paso 2.
 
@@ -49,12 +49,12 @@ Salida `clave=valor`; errores `ERR:` y código 1. `<develop>` y `<main>` salen d
 | `gitlab-mode` | `gitlab=glab` si `glab` está y `glab auth status --hostname <host de origin>` pasa; si no, `gitlab=manual` |
 | `mr-find` | MR abierto de develop a main: `mr_iid`, `mr_url`; o `mr=none` |
 | `mr-create` | `glab mr create -s <develop> -b <main> -t "Release <develop> → <main>" -d "" --remove-source-branch=false --squash-before-merge=false --yes` → `mr_iid`, `mr_url` |
-| `mr-status <iid>` | `state` (opened/merged/closed), `pipeline` (running/success/failed/canceled/skipped/manual/none), `sha`, `url` |
-| `mr-wait <iid> <pipeline\|merged>` | Repite `mr-status` hasta que el pipeline salga de `running` o el MR quede `merged`, o vence el tramo (`timeout=yes`) |
-| `mr-merge <iid> <sha>` | `glab mr merge <iid> --sha <sha> --auto-merge=false --yes` → `merged=yes`; si falla, `ERR:` con el motivo de glab |
+| `mr-status <iid>` | `state` (opened/merged/closed), `pipeline` (running/success/failed/canceled/skipped/manual/none), `sha`, `url`, `remove_source` (`force_remove_source_branch` del MR) |
+| `mr-wait <iid> <pipeline\|merged>` | Repite `mr-status` hasta que el pipeline salga de `running` o el MR quede `merged` o `closed`, o vence el tramo (`timeout=yes`) |
+| `mr-merge <iid> <sha>` | Falla si el MR tiene `remove_source=true`; si no, `glab mr merge <iid> --sha <sha> --remove-source-branch=false --auto-merge=false --yes` → `merged=yes`; si falla, `ERR:` con el motivo de glab |
 | `mr-link` | URL `https://<host>/<proyecto>/-/merge_requests/new?merge_request[source_branch]=<develop>&merge_request[target_branch]=<main>` desde `origin` https o ssh |
 | `push-branch` | `git push origin HEAD:refs/heads/<rama>` (sin force), solo fuera de la rama principal |
-| `release-target` | Falla si `origin/<main>` no contiene `origin/<develop>`; si lo contiene: árbol limpio, `checkout <main>`, `pull --ff-only`; informa `head` y `tagged=<x.y.z>` si existe |
+| `release-target` | Falla si no existe `origin/<develop>` u `origin/<main>`, o si `origin/<main>` no contiene `origin/<develop>`; si lo contiene: árbol limpio, `checkout <main>`, `merge --ff-only origin/<main>`; informa `head` y `tagged=<x.y.z>` si existe |
 
 Los estados de pipeline `created`, `waiting_for_resource`, `preparing`, `pending`, `running` y `scheduled` se informan como `running`. Los campos se extraen del JSON de `glab -F json` con `awk` (sin `jq`): `iid`, `state`, `web_url`, `sha` y `head_pipeline.status` (`head_pipeline: null` → `none`).
 

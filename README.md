@@ -13,7 +13,7 @@ Nunca se pushea sin confirmación. Los commits y tags usan tu identidad git.
 ## Requisitos
 
 - `git`. En Windows, Git for Windows (aporta `bash`).
-- `glab` (opcional), con sesión iniciada. Sin él, `deploy-prod` trabaja en modo manual: te indica los pasos del MR.
+- `glab` (opcional), con sesión iniciada. Sin `glab` o sin sesión iniciada, `deploy-prod` funciona en modo manual: indica los pasos del MR para que los haga el dev.
 
 ## Instalación
 
@@ -39,8 +39,14 @@ Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` 
 ## Flujo de prod
 
 1. `deploy-prod` desde `develop`: crea el MR `develop` → `main`.
-2. Con el CI del MR en verde, se mergea.
-3. Se crea y pushea el tag `x.y.z` en `main`.
+2. Con el CI del MR en verde, se mergea (sin squash y sin borrar `develop`).
+3. Se crea y pushea el tag `x.y.z` en `main`, sobre el mismo commit que `origin/main`.
+
+Modo manual (sin `glab` o sin sesión iniciada): `deploy-prod` indica los pasos del MR para que los haga el dev (te da el link para abrirlo); cuando avisás que está mergeado, sigue con el tag.
+
+Mientras corre el pipeline del MR, la skill espera hasta `CEPHAL_WAIT_MINUTES` minutos (por defecto 20); si no termina, volvé a correr `deploy-prod`: retoma donde quedó.
+
+`develop` y `main` son configurables con `DEVELOP_BRANCH` y `MAIN_BRANCH` en el bloque `variables:` del `.gitlab-ci.yml`.
 
 El tag de prod solo sale desde `main`; `deploy-test` no corre ahí. Los tags nunca se sobrescriben ni se mueven.
 
