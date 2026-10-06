@@ -43,4 +43,47 @@ assert_contains "$OUT" "head=$(git rev-parse --short HEAD)" "next-tag informa el
 run_cv next-tag nope
 assert_eq 1 "$RC" "entorno inválido: falla"
 
+# ---------- prod con Chart.yaml: el tag es su version ----------
+on_main_with_chart() { # $1 = version en chart/Chart.yaml
+  new_repo
+  git tag 2.4.0
+  git checkout -q main
+  mkdir -p chart; printf 'name: demo\nversion: %s\n' "$1" > chart/Chart.yaml
+  commit_all "chart $1"
+}
+on_main_with_chart 2.5.0
+run_cv next-tag prod
+assert_eq "tag=2.5.0" "$(nohead)" "Chart.yaml 2.5.0: tag sin pedir tipo"
+run_cv next-tag prod major
+assert_eq "tag=2.5.0" "$(nohead)" "Chart.yaml 2.5.0: el tipo se ignora"
+git tag 2.5.0
+run_cv next-tag prod
+assert_eq 1 "$RC" "Chart.yaml ya tagueado: falla"
+assert_contains "$ERRO" "ya existe el tag 2.5.0" "Chart.yaml ya tagueado: mensaje"
+assert_contains "$ERRO" "chart-prep" "Chart.yaml ya tagueado: indica chart-prep"
+
+on_main_with_chart 2.4.0
+run_cv next-tag prod
+assert_eq 1 "$RC" "Chart.yaml igual al último final: falla"
+assert_contains "$ERRO" "ya existe el tag 2.4.0" "Chart.yaml igual al último final: mensaje"
+
+on_main_with_chart 2.3.5
+run_cv next-tag prod
+assert_eq 1 "$RC" "Chart.yaml menor que el último final: falla"
+assert_contains "$ERRO" "no es mayor que el último final (2.4.0)" "Chart.yaml menor que el último final: mensaje"
+
+on_main_with_chart 0.0.0-SNAPSHOT
+run_cv next-tag prod
+assert_eq 1 "$RC" "Chart.yaml no x.y.z: falla"
+assert_contains "$ERRO" "no es x.y.z" "Chart.yaml no x.y.z: mensaje"
+
+on_main_with_chart 2.5.0
+git tag 2.5.0-rc.1
+add_file a.txt 1; commit_all "uno"
+add_file b.txt 2; commit_all "dos"
+run_cv next-tag prod
+assert_eq "tag=2.5.0
+rc_open=yes
+commits_since_rc=2" "$(nohead)" "Chart.yaml con RC abierto de esa base: informa commits desde el RC"
+
 finish

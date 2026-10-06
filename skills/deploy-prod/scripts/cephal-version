@@ -288,13 +288,13 @@ chart_version_problem() {
     printf '%s no es x.y.z\n' "${1:-(vacía)}"
     return 0
   fi
+  if git rev-parse -q --verify "refs/tags/$1" >/dev/null || git ls-remote --exit-code --tags origin "$1" >/dev/null 2>&1; then
+    printf 'ya existe el tag %s\n' "$1"
+    return 0
+  fi
   cp_last=$(last_final)
   if ! semver_gt "$1" "$cp_last"; then
     printf '%s no es mayor que el último final (%s)\n' "$1" "$cp_last"
-    return 0
-  fi
-  if git rev-parse -q --verify "refs/tags/$1" >/dev/null || git ls-remote --exit-code --tags origin "$1" >/dev/null 2>&1; then
-    printf 'ya existe el tag %s\n' "$1"
   fi
 }
 
@@ -519,6 +519,18 @@ cmd_next_tag() {
   # La regla de rama depende solo del entorno: prod = tag final, test = RC.
   if [ "$nt_env" = prod ]; then assert_tag_branch x.y.z; else assert_tag_branch x.y.z-rc.1; fi
   kv head "$(git rev-parse --short HEAD)"
+  # Con Chart.yaml, el tag de prod es su version: se decide en develop (chart-prep) y llega por el MR.
+  if [ "$nt_env" = prod ] && nt_chart=$(chart_version_get); then
+    nt_err=$(chart_version_problem "$nt_chart")
+    [ -z "$nt_err" ] || die "$nt_err; la versión de prod se decide en develop con chart-prep"
+    kv tag "$nt_chart"
+    if [ "$(open_rc_base)" = "$nt_chart" ]; then
+      nt_n=$(max_rc_n "$nt_chart")
+      kv rc_open yes
+      kv commits_since_rc "$(git rev-list --count "$nt_chart-rc.$nt_n..HEAD")"
+    fi
+    return 0
+  fi
   nt_open=$(open_rc_base)
   if [ -n "$nt_open" ]; then
     nt_n=$(max_rc_n "$nt_open")
