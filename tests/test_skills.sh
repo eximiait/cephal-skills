@@ -33,8 +33,12 @@ for k in mr-find mr-create mr-wait mr-merge mr-link release-target gitlab-mode p
 done
 # sin glab: caída a manual, pasos manuales y skills que no lo necesitan
 assert_eq yes "$(grep -qF 'seguí en modo manual' skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: si falla un mr-*, sigue en modo manual"
-for k in 'Delete source branch' 'Squash' 'release-target'; do
-  assert_eq yes "$(grep -qF -- "$k" skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: pasos manuales mencionan $k"
+for k in 'SIN tildar `Delete source branch`' 'SIN `Squash commits`' 'sin el link' 'GitLab todavía no muestra el merge en <main_branch>'; do
+  assert_eq yes "$(grep -qF -- "$k" skills/deploy-prod/SKILL.md && echo yes || echo no)" "deploy-prod: modo manual dice $k"
+done
+fb=$(grep -F 'seguí en modo manual' skills/deploy-prod/SKILL.md)
+for k in mr-find mr-create mr-status mr-wait mr-merge; do
+  assert_eq yes "$(printf '%s' "$fb" | grep -qF -- "$k" && echo yes || echo no)" "deploy-prod: la línea de caída a manual lista $k"
 done
 for s in bump-app-version deploy-test; do
   assert_eq "" "$(grep -E 'glab|mr-' "skills/$s/SKILL.md")" "$s: no usa glab ni mr-*"
