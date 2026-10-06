@@ -5,14 +5,15 @@ Skills para agentes de código (Claude Code, Codex, OpenCode y otros) que ayudan
 | Skill | Qué hace |
 |---|---|
 | `bump-app-version` | Sube la versión de la app (pom, gradle, npm, pnpm) y alinea `appVersion` de `Chart.yaml`. Solo en la rama de desarrollo. No commitea. |
-| `deploy-test` | Crea y pushea el tag `x.y.z-rc.n` (despliega a test). |
-| `deploy-prod` | Crea y pushea el tag `x.y.z` (habilita prod). Puede salir sin RC previo. |
+| `deploy-test` | Crea y pushea el tag `x.y.z-rc.n` (despliega a test). No corre en `main`. |
+| `deploy-prod` | Integra `develop` en `main` por MR y crea el tag `x.y.z` en `main` (habilita prod). Puede salir sin RC previo. |
 
 Nunca se pushea sin confirmación. Los commits y tags usan tu identidad git.
 
 ## Requisitos
 
 - `git`. En Windows, Git for Windows (aporta `bash`).
+- `glab` (opcional), con sesión iniciada. Sin él, `deploy-prod` trabaja en modo manual: te indica los pasos del MR.
 
 ## Instalación
 
@@ -34,6 +35,14 @@ Actualizar: `/plugin marketplace update cephal-skills` (Claude Code) o `npx skil
 ## Uso
 
 Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` o `deploy-prod` (en Claude Code: `cephal:bump-app-version`, etc.).
+
+## Flujo de prod
+
+1. `deploy-prod` desde `develop`: crea el MR `develop` → `main`.
+2. Con el CI del MR en verde, se mergea.
+3. Se crea y pushea el tag `x.y.z` en `main`.
+
+El tag de prod solo sale desde `main`; `deploy-test` no corre ahí. Los tags nunca se sobrescriben ni se mueven.
 
 ## Desarrollo
 

@@ -49,7 +49,7 @@ sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync: restaura las
 
 # manifiestos
 assert_eq yes "$(grep -q '"name": "cephal"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: name"
-assert_eq yes "$(grep -q '"version": "0.1.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.1.0"
+assert_eq yes "$(grep -q '"version": "0.2.0"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.2.0"
 assert_eq yes "$(grep -q '"name": "cephal-skills"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: name"
 assert_eq yes "$(grep -q '"source": "./"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: source"
 if command -v node >/dev/null 2>&1; then
