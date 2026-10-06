@@ -6,6 +6,8 @@
 - Nuevo subcomando `chart-prep [--apply] [tipo]`: calcula la versión del chart (RC abierto o tipo) y, con `--apply`, la escribe y commitea `Chart a x.y.z` (nunca en `main`).
 - `next-tag prod`: con `Chart.yaml`, el tag es su `version` validada (x.y.z, mayor que el último final y sin tag existente); sin `Chart.yaml`, como antes.
 - `tag-push` y la validación de versión buscan el tag exacto en origin (`refs/tags/<tag>`) y, si no pueden consultarlo, fallan en lugar de asumir que no existe.
+- `bump`, `release-prep --apply` y `chart-prep --apply` muestran la diff de lo que cambian (texto plano, formato fijo); las skills la presentan tal cual, coloreada como `git diff`, y se limitan a preguntas y una línea por resultado.
+- README: sección de uso con ejemplos de cada skill (`docs/img/`, generados con `sh docs/img/generar.sh`).
 
 ## 0.2.0 - 2026-10-06
 

@@ -34,7 +34,27 @@ Actualizar: `/plugin marketplace update cephal-skills` (Claude Code) o `npx skil
 
 ## Uso
 
-Desde la raíz del proyecto, pedile al agente `bump-app-version`, `deploy-test` o `deploy-prod` (en Claude Code: `cephal:bump-app-version`, etc.).
+Desde la raíz del proyecto, pedile al agente la skill (en Claude Code: `/cephal:bump-app-version`, `/cephal:deploy-test`, `/cephal:deploy-prod`). Cada skill pregunta solo lo necesario, muestra **la diff de lo que cambia** coloreada como `git diff` y una línea por resultado. Nada se pushea sin tu confirmación.
+
+### Subir la versión de la app
+
+En la rama de desarrollo: sube la versión en `pom.xml`, `build.gradle` o `package.json`, alinea `appVersion` de `Chart.yaml` y deja los cambios sin commitear.
+
+![bump-app-version](docs/img/bump-app-version.svg)
+
+### Desplegar a test
+
+Desde cualquier rama menos `main`: si la versión tiene `-SNAPSHOT` ofrece quitarlo, calcula el RC y pushea el tag `x.y.z-rc.n`.
+
+![deploy-test](docs/img/deploy-test.svg)
+
+### Desplegar a prod
+
+Desde `develop`: decide la versión (queda en `Chart.yaml`), crea y sigue el MR a `main` y, ya en `main`, crea el tag `x.y.z`.
+
+![deploy-prod](docs/img/deploy-prod.svg)
+
+Las diffs de las imágenes son la salida real del script; las demás líneas muestran lo que responde el agente según la skill. Se regeneran con `sh docs/img/generar.sh`.
 
 ## Flujo de prod
 

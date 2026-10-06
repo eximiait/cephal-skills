@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="464" viewBox="0 0 920 464" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<rect width="920" height="464" rx="8" fill="#0d1117"/>
+<circle cx="18" cy="16" r="5" fill="#ff5f56"/><circle cx="36" cy="16" r="5" fill="#ffbd2e"/><circle cx="54" cy="16" r="5" fill="#27c93f"/>
+<text x="460" y="20" fill="#8b949e" text-anchor="middle">deploy-prod</text>
+<text x="16" y="44" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; /cephal:deploy-prod</text>
+<text x="16" y="64" fill="#c9d1d9" font-weight="normal" xml:space="preserve">Versión a liberar: 1.1.0</text>
+<text x="16" y="84" fill="#c9d1d9" font-weight="normal" xml:space="preserve">¿Commiteo «Chart a 1.1.0» y pusheo develop?</text>
+<text x="16" y="104" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; sí</text>
+<text x="16" y="124" fill="#e6edf3" font-weight="bold" xml:space="preserve">diff --git a/chart/Chart.yaml b/chart/Chart.yaml</text>
+<text x="16" y="144" fill="#e6edf3" font-weight="bold" xml:space="preserve">index 1adb0c6..badfb03 100644</text>
+<text x="16" y="164" fill="#e6edf3" font-weight="bold" xml:space="preserve">--- a/chart/Chart.yaml</text>
+<text x="16" y="184" fill="#e6edf3" font-weight="bold" xml:space="preserve">+++ b/chart/Chart.yaml</text>
+<text x="16" y="204" fill="#58a6ff" font-weight="normal" xml:space="preserve">@@ -2,3 +2,3 @@ apiVersion: v2</text>
+<text x="16" y="224" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> name: demo</text>
+<text x="16" y="244" fill="#f85149" font-weight="normal" xml:space="preserve">-version: 1.0.0</text>
+<text x="16" y="264" fill="#3fb950" font-weight="normal" xml:space="preserve">+version: 1.1.0</text>
+<text x="16" y="284" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> appVersion: "2.0.0"</text>
+<text x="16" y="304" fill="#c9d1d9" font-weight="normal" xml:space="preserve">MR creado: https://gitlab.example.com/grupo/proyecto/-/merge_requests/12</text>
+<text x="16" y="324" fill="#c9d1d9" font-weight="normal" xml:space="preserve">Pipeline del MR en verde. ¿Mergeo yo o lo hacés vos?</text>
+<text x="16" y="344" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; mergealo</text>
+<text x="16" y="364" fill="#c9d1d9" font-weight="normal" xml:space="preserve">Mergeado. El checkout ahora está en main.</text>
+<text x="16" y="384" fill="#c9d1d9" font-weight="normal" xml:space="preserve">Tag 1.1.0 sobre 9f3c2ab (main). ¿Confirmás el push?</text>
+<text x="16" y="404" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; sí</text>
+<text x="16" y="424" fill="#c9d1d9" font-weight="normal" xml:space="preserve">pushed=1.1.0</text>
+</svg>
