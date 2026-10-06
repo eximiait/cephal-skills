@@ -23,8 +23,8 @@ Alcance inicial: versionado y tags. Plugin `cephal` con tres skills:
 
 1. **Base del tag**: siguiente semver del chart. El dev elige `patch`, `minor` o `major` sobre el último tag final (sin tags: se parte de `0.0.0`). La versión de la app va aparte.
 2. **RC abierto**: base con tag `-rc.n` sin tag final de esa base y mayor que el último final. `deploy-test` continúa con `rc.n+1` de la base abierta más alta, sin preguntar. `deploy-prod` toma esa base, crea el final sobre `HEAD` e informa cuántos commits hay desde el último RC.
-3. **Prod sin RC**: permitido, sin confirmación extra; el dev elige el tipo. Un `x.y.z` pasa obligatoriamente por test.
-4. **Validación**: solo git local. No se consulta registry ni estado del pipeline (`version-bump-check` es la red de seguridad).
+3. **Prod sin RC**: permitido, sin confirmación extra; el dev elige el tipo. Un `x.y.z` pasa obligatoriamente por test. *(Desde 0.2.0 el tag de prod sale solo de la rama principal, tras el MR de develop: ver `2026-10-06-deploy-prod-desde-main-design.md`.)*
+4. **Validación**: solo git local. No se consulta registry ni estado del pipeline (`version-bump-check` es la red de seguridad). *(Reemplazada en 0.2.0: `deploy-prod` consulta GitLab vía `glab`, con modo manual si falta.)*
 5. **`-SNAPSHOT`**: `deploy-*` avisan de forma resaltada que no se puede pasar a testing con el sufijo y proponen quitarlo con un commit `Release app x.y.z` (archivo del lenguaje y `appVersion`), previa confirmación.
 6. **Bump**: el dev elige tipo; se conserva `-SNAPSHOT` (`1.3.1-SNAPSHOT` → `1.3.2-SNAPSHOT`). Solo corre en la rama de desarrollo. Deja los cambios sin commitear ni pushear.
 7. **Seguridad**: nunca se pushea sin confirmación explícita del dev. Commits y tags usan la identidad git del dev; no llevan trailers ni menciones al agente ni a cephal. El script nunca setea `user.name`/`user.email`.
