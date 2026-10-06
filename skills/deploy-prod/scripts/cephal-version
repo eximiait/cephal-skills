@@ -653,7 +653,7 @@ cmd_tag_push() {
     *-rc.*) ;;
     *)
       tp_err=$(git fetch --tags origin 2>&1) || die "no se pudo consultar origin: $tp_err"
-      tp_counts=$(git rev-list --left-right --count "HEAD...origin/$tp_branch")
+      tp_counts=$(git rev-list --left-right --count "HEAD...origin/$tp_branch" 2>/dev/null) || die "no existe origin/$tp_branch"
       tp_ahead=${tp_counts%%[[:space:]]*}
       [ "$tp_ahead" = 0 ] || die "$tp_branch tiene commits sin integrar por MR"
       [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$tp_branch")" ] || die "$tp_branch no coincide con origin/$tp_branch; actualizala (release-target)"
