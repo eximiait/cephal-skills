@@ -3,7 +3,7 @@
 chart() { # $1 = contenido de chart/Chart.yaml (sin salto final agregado por printf)
   mkdir -p chart; printf '%s\n' "$1" > chart/Chart.yaml
 }
-vline() { grep '^version' "${1:-chart/Chart.yaml}"; }
+vline() { grep '^version' chart/Chart.yaml; }
 
 # sin Chart.yaml
 new_repo
