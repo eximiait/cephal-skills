@@ -17,12 +17,12 @@ Mostrá solo lo imprescindible. Cada corrida retoma donde quedó; no duplica MR 
 3. Integrar develop (solo desde `develop_branch`; si no: `Pasate a <develop_branch>` y terminá). `CV gitlab-mode`:
    - `gitlab=manual`: dá `CV mr-link`, pedí que cree y mergee el MR y que te avise. Con el aviso, volvé al paso 2.
    - `gitlab=glab`: `CV mr-find`.
-     - `mr=none`: `CV check`, luego `CV release-prep`. Con `snapshot=yes`, destacá **⚠️ -SNAPSHOT: no se puede liberar** y ofrecé `CV release-prep --apply` + `CV push-branch` (con confirmación). Después pedí confirmación y `CV mr-create`; informá `mr_url`, y seguí con su `mr_iid`.
+     - `mr=none`: `CV check`, luego `CV release-prep`. Con `snapshot=yes`, destacá **⚠️ -SNAPSHOT: no se puede liberar** y ofrecé `CV release-prep --apply` + `CV push-branch` (con confirmación); si no acepta, terminá. Después pedí confirmación y `CV mr-create`; informá `mr_url`, y seguí con su `mr_iid`.
      - `mr_iid`: `CV mr-status <iid>`, según `pipeline`:
-       - `running`: repetí `CV mr-wait <iid> pipeline` hasta que termine o pasen `CEPHAL_WAIT_MINUTES` (20) en total; al vencer: `Volvé a correr deploy-prod cuando termine.`
+       - `running`: repetí `CV mr-wait <iid> pipeline` mientras `timeout=yes`, hasta `CEPHAL_WAIT_MINUTES` (20) en total; al vencer: `Volvé a correr deploy-prod cuando termine.` Con `timeout=no`, seguí según el `pipeline` devuelto (ramas siguientes).
        - `failed`, `canceled`, `skipped`, `manual`: mostrá `state` y `url` y terminá.
        - `none`: sin pipeline, solo el dev puede mergear; avisá y terminá.
-       - `success`: preguntá `¿Mergeo yo o lo hacés vos?`. Si yo: confirmación y `CV mr-merge <iid> <sha>` (`sha` de `mr-status`). Si el dev: `CV mr-wait <iid> merged` con el mismo límite.
+       - `success`: preguntá `¿Mergeo yo o lo hacés vos?`. Si yo: confirmación y `CV mr-merge <iid> <sha>` (`sha` de `mr-status`). Si el dev: repetí `CV mr-wait <iid> merged` mientras `timeout=yes`, con el mismo límite y salida; con `state=closed` decí `El MR se cerró sin mergear` y terminá.
      - Si `mr-merge` falla, mostrá el motivo y dejalo al dev.
    - Con el MR mergeado, volvé al paso 2.
 4. `release-target` deja el checkout en `main_branch` y trae `head` y, si existe, `tagged`. Con `tagged`: `Ya liberado: <tag>` y terminá.
