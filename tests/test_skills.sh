@@ -88,7 +88,7 @@ for s in $SKILLS; do
   assert_eq yes "$(grep -qF 'tal cual' "skills/$s/SKILL.md" && echo yes || echo no)" "$s: la diff va tal cual"
 done
 
-for img in bump-app-version deploy-test deploy-prod; do
+for img in bump-app-version deploy-test deploy-prod flujo; do
   assert_eq yes "$(grep -qF "docs/img/$img.svg" README.md && [ -f "docs/img/$img.svg" ] && echo yes || echo no)" "README: imagen $img referenciada y presente"
 done
 

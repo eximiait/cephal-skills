@@ -59,6 +59,10 @@ Desde `develop`: decide la versión (queda en `Chart.yaml`), crea y sigue el MR 
 
 En cualquier rama: muestra qué pasa ante un push a una feature o a `develop`, un tag RC y un tag final, y desde qué rama sale cada tag. Marca el estado del repo (último final, RC abierto y la rama en la que estás) y usa las ramas configuradas con `DEVELOP_BRANCH` y `MAIN_BRANCH`. No cambia nada.
 
+![flujo de versionado](docs/img/flujo.svg)
+
+En la terminal sale así (texto, para que se lea igual en cualquier agente):
+
 ```
  mi-app | app 1.3.1 | último final 1.0.0 | RC abierto 1.1.0
 

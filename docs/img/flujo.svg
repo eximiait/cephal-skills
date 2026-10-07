@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1664" height="400" viewBox="0 0 1664 400" font-family="JetBrains Mono, Consolas, Menlo, monospace">
+<defs>
+<marker id="a" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto"><path d="M0 1 L14 8 L0 15 z" fill="#F2B48C"/></marker>
+<marker id="r" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto"><path d="M0 1 L14 8 L0 15 z" fill="#FF6B6B"/></marker>
+<marker id="b" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="12" refY="8" orient="auto"><path d="M0 1 L14 8 L0 15 z" fill="#7FB2E5"/></marker>
+</defs>
+<g font-size="26" font-weight="700">
+<text x="8" y="79" fill="#FF6B6B">main</text>
+<text x="8" y="219" fill="#7FB2E5">develop</text>
+<text x="8" y="349" fill="#C9D2DD">feature/x</text>
+</g>
+<line x1="190" y1="70" x2="1630" y2="70" stroke="#FF6B6B" stroke-width="5" marker-end="url(#r)"/>
+<line x1="190" y1="210" x2="1630" y2="210" stroke="#7FB2E5" stroke-width="5" marker-end="url(#b)"/>
+<path d="M300 210 C300 300 330 340 400 340 L470 340 C530 340 560 290 560 210" fill="none" stroke="#C9D2DD" stroke-width="4"/>
+<path d="M960 210 C1040 210 1020 70 1100 70" fill="none" stroke="#F2B48C" stroke-width="4" stroke-dasharray="10 6" marker-end="url(#a)"/>
+<g fill="#16202E" stroke="#7FB2E5" stroke-width="4">
+<circle cx="300" cy="210" r="11"/><circle cx="560" cy="210" r="11"/><circle cx="800" cy="210" r="11"/><circle cx="960" cy="210" r="11"/>
+</g>
+<g fill="#16202E" stroke="#C9D2DD" stroke-width="4"><circle cx="415" cy="340" r="10"/><circle cx="465" cy="340" r="10"/></g>
+<circle cx="190" cy="70" r="11" fill="#16202E" stroke="#FF6B6B" stroke-width="4"/>
+<circle cx="1100" cy="70" r="14" fill="#FF6B6B" stroke="#F4F2EC" stroke-width="3"/>
+<g font-size="20" fill="#E2E8EF">
+<circle cx="336" cy="180" r="14" fill="#7FB2E5"/><text x="336" y="187" text-anchor="middle" font-weight="700" fill="#16202E">2</text>
+<text x="362" y="187">push: imagen x.y.z-develop + chart → dev</text>
+<circle cx="612" cy="340" r="14" fill="#C9D2DD"/><text x="612" y="347" text-anchor="middle" font-weight="700" fill="#16202E">1</text>
+<text x="638" y="347">push: solo valida, no publica</text>
+<text x="1075" y="132" fill="#F2B48C">MR develop → main</text>
+<text x="1075" y="156" fill="#F2B48C">(deploy-prod)</text>
+<text x="800" y="318" fill="#C9D2DD" font-size="18">desde cualquier rama menos main</text>
+</g>
+<line x1="800" y1="221" x2="800" y2="252" stroke="#F2B48C" stroke-width="4"/>
+<rect x="790" y="252" width="520" height="38" rx="8" fill="#F2B48C"/>
+<circle cx="816" cy="271" r="14" fill="#16202E"/><text x="816" y="278" text-anchor="middle" font-size="20" font-weight="700" fill="#F2B48C">3</text>
+<text x="842" y="278" font-size="20" font-weight="700" fill="#16202E">tag x.y.z-rc.n → test (deploy-test)</text>
+<rect x="1125" y="24" width="520" height="38" rx="8" fill="#FF6B6B"/>
+<circle cx="1151" cy="43" r="14" fill="#16202E"/><text x="1151" y="50" text-anchor="middle" font-size="20" font-weight="700" fill="#FF6B6B">4</text>
+<text x="1177" y="50" font-size="20" font-weight="700" fill="#16202E">tag x.y.z → prod (solo desde main)</text>
+</svg>
