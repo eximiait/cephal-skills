@@ -1,26 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="484" viewBox="0 0 920 484" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
-<rect width="920" height="484" rx="8" fill="#0d1117"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="584" viewBox="0 0 920 584" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<rect width="920" height="584" rx="8" fill="#0d1117"/>
 <circle cx="18" cy="16" r="5" fill="#ff5f56"/><circle cx="36" cy="16" r="5" fill="#ffbd2e"/><circle cx="54" cy="16" r="5" fill="#27c93f"/>
 <text x="460" y="20" fill="#8b949e" text-anchor="middle">bump-app-version</text>
 <text x="16" y="44" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; /cephal:bump-app-version</text>
-<text x="16" y="64" fill="#c9d1d9" font-weight="normal" xml:space="preserve">¿patch, minor o major? (versión actual: 1.3.1-SNAPSHOT)</text>
-<text x="16" y="84" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; patch</text>
-<text x="16" y="104" fill="#e6edf3" font-weight="bold" xml:space="preserve">diff --git a/chart/Chart.yaml b/chart/Chart.yaml</text>
-<text x="16" y="124" fill="#e6edf3" font-weight="bold" xml:space="preserve">index a0085a0..da386e8 100644</text>
-<text x="16" y="144" fill="#e6edf3" font-weight="bold" xml:space="preserve">--- a/chart/Chart.yaml</text>
-<text x="16" y="164" fill="#e6edf3" font-weight="bold" xml:space="preserve">+++ b/chart/Chart.yaml</text>
-<text x="16" y="184" fill="#58a6ff" font-weight="normal" xml:space="preserve">@@ -3,2 +3,2 @@ name: demo</text>
-<text x="16" y="204" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> version: 2.4.0</text>
-<text x="16" y="224" fill="#f85149" font-weight="normal" xml:space="preserve">-appVersion: "1.3.1-SNAPSHOT"</text>
-<text x="16" y="244" fill="#3fb950" font-weight="normal" xml:space="preserve">+appVersion: "1.3.2-SNAPSHOT"</text>
-<text x="16" y="264" fill="#e6edf3" font-weight="bold" xml:space="preserve">diff --git a/pom.xml b/pom.xml</text>
-<text x="16" y="284" fill="#e6edf3" font-weight="bold" xml:space="preserve">index 58e5922..781159b 100644</text>
-<text x="16" y="304" fill="#e6edf3" font-weight="bold" xml:space="preserve">--- a/pom.xml</text>
-<text x="16" y="324" fill="#e6edf3" font-weight="bold" xml:space="preserve">+++ b/pom.xml</text>
-<text x="16" y="344" fill="#58a6ff" font-weight="normal" xml:space="preserve">@@ -2,3 +2,3 @@</text>
-<text x="16" y="364" fill="#c9d1d9" font-weight="normal" xml:space="preserve">   &lt;artifactId&gt;demo&lt;/artifactId&gt;</text>
-<text x="16" y="384" fill="#f85149" font-weight="normal" xml:space="preserve">-  &lt;version&gt;1.3.1-SNAPSHOT&lt;/version&gt;</text>
-<text x="16" y="404" fill="#3fb950" font-weight="normal" xml:space="preserve">+  &lt;version&gt;1.3.2-SNAPSHOT&lt;/version&gt;</text>
-<text x="16" y="424" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> &lt;/project&gt;</text>
-<text x="16" y="444" fill="#c9d1d9" font-weight="normal" xml:space="preserve">1.3.1-SNAPSHOT → 1.3.2-SNAPSHOT. Listo. Commiteá los cambios.</text>
+<text x="16" y="64" fill="#c9d1d9" font-weight="normal" xml:space="preserve">¿patch, minor o major? (versión actual: 0.1.0)</text>
+<text x="16" y="84" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; minor</text>
+<text x="16" y="104" fill="#c9d1d9" font-weight="normal" xml:space="preserve">¿patch, minor o major para el chart? (último release: 1.0.0)</text>
+<text x="16" y="124" fill="#d2a8ff" font-weight="normal" xml:space="preserve">&gt; minor</text>
+<text x="16" y="144" fill="#c9d1d9" font-weight="normal" xml:space="preserve">Chart: 1.1.0</text>
+<text x="16" y="164" fill="#e6edf3" font-weight="bold" xml:space="preserve">diff --git a/chart/Chart.yaml b/chart/Chart.yaml</text>
+<text x="16" y="184" fill="#e6edf3" font-weight="bold" xml:space="preserve">index 8d2ff3a..46fb51d 100644</text>
+<text x="16" y="204" fill="#e6edf3" font-weight="bold" xml:space="preserve">--- a/chart/Chart.yaml</text>
+<text x="16" y="224" fill="#e6edf3" font-weight="bold" xml:space="preserve">+++ b/chart/Chart.yaml</text>
+<text x="16" y="244" fill="#58a6ff" font-weight="normal" xml:space="preserve">@@ -2,3 +2,3 @@ apiVersion: v2</text>
+<text x="16" y="264" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> name: demo</text>
+<text x="16" y="284" fill="#f85149" font-weight="normal" xml:space="preserve">-version: 1.0.0</text>
+<text x="16" y="304" fill="#f85149" font-weight="normal" xml:space="preserve">-appVersion: "0.1.0"</text>
+<text x="16" y="324" fill="#3fb950" font-weight="normal" xml:space="preserve">+version: 1.1.0</text>
+<text x="16" y="344" fill="#3fb950" font-weight="normal" xml:space="preserve">+appVersion: "0.2.0"</text>
+<text x="16" y="364" fill="#e6edf3" font-weight="bold" xml:space="preserve">diff --git a/pom.xml b/pom.xml</text>
+<text x="16" y="384" fill="#e6edf3" font-weight="bold" xml:space="preserve">index 9e29a66..a648214 100644</text>
+<text x="16" y="404" fill="#e6edf3" font-weight="bold" xml:space="preserve">--- a/pom.xml</text>
+<text x="16" y="424" fill="#e6edf3" font-weight="bold" xml:space="preserve">+++ b/pom.xml</text>
+<text x="16" y="444" fill="#58a6ff" font-weight="normal" xml:space="preserve">@@ -2,3 +2,3 @@</text>
+<text x="16" y="464" fill="#c9d1d9" font-weight="normal" xml:space="preserve">   &lt;artifactId&gt;demo&lt;/artifactId&gt;</text>
+<text x="16" y="484" fill="#f85149" font-weight="normal" xml:space="preserve">-  &lt;version&gt;0.1.0&lt;/version&gt;</text>
+<text x="16" y="504" fill="#3fb950" font-weight="normal" xml:space="preserve">+  &lt;version&gt;0.2.0&lt;/version&gt;</text>
+<text x="16" y="524" fill="#c9d1d9" font-weight="normal" xml:space="preserve"> &lt;/project&gt;</text>
+<text x="16" y="544" fill="#c9d1d9" font-weight="normal" xml:space="preserve">0.1.0 → 0.2.0. Listo. Commiteá los cambios.</text>
 </svg>

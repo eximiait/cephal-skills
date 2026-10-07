@@ -1,6 +1,6 @@
 ---
 name: bump-app-version
-description: Sube la versión de la app (pom, gradle, npm o pnpm) y alinea appVersion de Chart.yaml. Usala en la rama de desarrollo antes de liberar cambios de código.
+description: Sube la versión de la app (pom, gradle, npm o pnpm), alinea appVersion de Chart.yaml y, si el chart ya fue liberado, deja la siguiente versión del chart. Usala en la rama de desarrollo antes de liberar cambios de código.
 ---
 
 # Subir la versión de la app
@@ -15,8 +15,9 @@ Al dev mostrale solo las preguntas, una línea por resultado y, si un comando tr
 1. `CV context`. Si falla, mostrá el error y terminá.
 2. Si `branch` es distinto de `develop_branch`: `Estás en <branch>; el bump se hace en <develop_branch>.` y terminá.
 3. Preguntá: `¿patch, minor o major? (versión actual: <version>)`.
-4. `CV bump <tipo>`. Mostrá la diff y `<from> → <to>`.
-5. Cerrá con una línea: `Listo. Commiteá los cambios.`
+4. `CV chart-prep --write`. Si falla con `falta el tipo`, preguntá `¿patch, minor o major para el chart? (último release: <last_final>)` y repetilo con el tipo; con otro error, mostralo y terminá. Con `changed=yes`, informá `Chart: <version>`; con `changed=no` o `chart=skipped`, no digas nada del chart.
+5. `CV bump <tipo>`. Mostrá la diff y `<from> → <to>`.
+6. Cerrá con una línea: `Listo. Commiteá los cambios.`
 
 No commitees ni pushees: eso lo decide el dev.
 Nunca muevas, borres ni sobrescribas un tag, ni ofrezcas `--force`; si el tag existe, informalo y terminá.

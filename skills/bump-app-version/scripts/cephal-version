@@ -744,13 +744,21 @@ cmd_release_prep() {
   fi
 }
 
-# chart-prep [--apply] [tipo]: decide en develop la versión del chart para prod; con --apply la escribe y commitea.
+# chart-prep [--apply|--write] [tipo]: decide en develop la versión del chart para prod; --apply la escribe y commitea,
+# --write solo la escribe (lo usa bump-app-version: el diff lo muestra el bump).
 cmd_chart_prep() {
   cp_apply=no
-  if [ "${1:-}" = "--apply" ]; then
-    cp_apply=yes
-    shift
-  fi
+  cp_write=no
+  case "${1:-}" in
+    --apply)
+      cp_apply=yes
+      shift
+      ;;
+    --write)
+      cp_write=yes
+      shift
+      ;;
+  esac
   cp_type=${1:-}
   if ! cp_cur=$(chart_version_get); then
     kv chart skipped
@@ -770,12 +778,15 @@ cmd_chart_prep() {
   fi
   cp_err=$(chart_version_problem "$cp_new")
   [ -z "$cp_err" ] || die "$cp_err"
-  if [ "$cp_apply" = yes ]; then
+  if [ "$cp_apply" = yes ] || [ "$cp_write" = yes ]; then
     [ "$(current_branch)" != "$(main_branch)" ] || die "en $(main_branch) no se commitea: la versión del chart se decide en otra rama y llega por MR"
+  fi
+  if [ "$cp_apply" = yes ]; then
     [ -z "$(git status --porcelain --untracked-files=no)" ] || die "hay cambios sin commitear"
   fi
   kv version "$cp_new"
   kv changed yes
+  if [ "$cp_write" = yes ]; then chart_version_set "$cp_new"; fi
   if [ "$cp_apply" = yes ]; then
     chart_version_set "$cp_new"
     git commit -q -a -m "Chart a $cp_new" || die "no se pudo crear el commit del chart"
@@ -1037,6 +1048,14 @@ cmd_flow() {
   fl_t "[2] push a $fl_d" "$fl_d" "imagen x.y.z-develop + chart" "dev (auto)"
   fl_t "[3] tag x.y.z-rc.n" "$fl_any" "imagen x.y.z (o la reusa) + chart" "dev auto, test manual"
   fl_t "[4] tag x.y.z" "$fl_m" "imagen x.y.z (o la reusa) + chart" "dev auto, test y prod manual"
+  printf '\n'
+  printf ' Bump de versión (bump-app-version, en %s; no commitea)\n' "$fl_d"
+  printf '  - Cuándo: al cambiar código, si la versión de la app ya se usó en un tag (RC o final).\n'
+  printf '  - Un solo bump por ciclo; un fix durante un RC también lleva bump.\n'
+  printf '  - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.\n'
+  printf '  - No lleva bump: cambios solo en el chart, la documentación o los tests.\n'
+  printf '  - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).\n'
+  printf '  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-prod usa esa versión.\n'
   printf '\n'
   case "$fl_cur" in
     "$fl_m") fl_here="en $fl_m solo se crea el tag x.y.z (deploy-prod); deploy-test no corre acá" ;;

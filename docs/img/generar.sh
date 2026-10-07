@@ -54,10 +54,12 @@ render() {
 }
 
 # bump-app-version
-repo 1.3.1-SNAPSHOT 2.4.0
-D=$(sh "$CV" bump patch | diffpart)
-{ printf 'P|> /cephal:bump-app-version\n'; printf 'A|¿patch, minor o major? (versión actual: 1.3.1-SNAPSHOT)\n'; printf 'P|> patch\n'
-  printf '%s\n' "$D" | sed 's/^/D|/'; printf 'A|1.3.1-SNAPSHOT → 1.3.2-SNAPSHOT. Listo. Commiteá los cambios.\n'; } | render "$OUTDIR/bump-app-version.svg" "bump-app-version"
+repo 0.1.0 1.0.0; git tag 1.0.0
+sh "$CV" chart-prep --write minor >/dev/null
+D=$(sh "$CV" bump minor | diffpart)
+{ printf 'P|> /cephal:bump-app-version\n'; printf 'A|¿patch, minor o major? (versión actual: 0.1.0)\n'; printf 'P|> minor\n'
+  printf 'A|¿patch, minor o major para el chart? (último release: 1.0.0)\n'; printf 'P|> minor\n'; printf 'A|Chart: 1.1.0\n'
+  printf '%s\n' "$D" | sed 's/^/D|/'; printf 'A|0.1.0 → 0.2.0. Listo. Commiteá los cambios.\n'; } | render "$OUTDIR/bump-app-version.svg" "bump-app-version"
 
 # deploy-test (con -SNAPSHOT)
 repo 2.0.0-SNAPSHOT 1.0.0; git tag 1.0.0

@@ -146,4 +146,62 @@ run_cv chart-prep
 assert_eq 1 "$RC" "origin inaccesible: falla"
 assert_contains "$ERRO" "no se pudo consultar los tags de origin" "origin inaccesible: mensaje"
 
+
+# --write: escribe sin commitear (lo usa bump-app-version tras un release)
+new_repo
+chart 'name: demo
+version: "1.0.0"
+appVersion: "0.1.0"'
+commit_all "chart"; git push -q; git tag 1.0.0
+BEFORE=$(git rev-list --count HEAD)
+run_cv chart-prep --write
+assert_eq 1 "$RC" "--write sin tipo ni RC: falla"
+assert_contains "$ERRO" "falta el tipo" "--write sin tipo: mensaje"
+assert_eq "" "$(git status --porcelain)" "--write que falla no modifica nada"
+run_cv chart-prep --write minor
+assert_eq "version=1.1.0
+changed=yes" "$OUT" "--write: calcula sobre el último final"
+assert_eq 'version: "1.1.0"' "$(vline)" "--write: conserva comillas"
+assert_eq "$BEFORE" "$(git rev-list --count HEAD)" "--write: no commitea"
+assert_eq " M chart/Chart.yaml" "$(git status --porcelain)" "--write: deja el cambio sin commitear"
+assert_eq "" "$(printf '%s\n' "$OUT" | grep 'diff --git')" "--write: no muestra diff (la muestra el bump)"
+run_cv chart-prep --write
+assert_eq "version=1.1.0
+changed=no" "$OUT" "--write con la versión ya liberable: changed=no"
+git checkout -q -- chart/Chart.yaml
+
+# --write con RC abierto: toma la base del RC sin preguntar
+git tag 1.1.0-rc.1
+run_cv chart-prep --write
+assert_eq "version=1.1.0
+changed=yes" "$OUT" "--write con RC abierto: base del RC"
+git checkout -q -- chart/Chart.yaml
+
+# --write no se hace en la rama principal
+git branch -q -f main develop; git checkout -q main
+run_cv chart-prep --write minor
+assert_eq 1 "$RC" "--write en main falla"
+assert_contains "$ERRO" "en main no se commitea" "--write en main: mensaje"
+assert_eq "" "$(git status --porcelain)" "--write en main: no modifica"
+
+# flujo completo del dev: chart-prep --write y después bump
+new_repo
+add_file pom.xml '<project>
+  <artifactId>demo</artifactId>
+  <version>0.1.0</version>
+</project>'
+chart 'name: demo
+version: 1.0.0
+appVersion: "0.1.0"'
+commit_all "release"; git push -q; git tag 1.0.0
+run_cv chart-prep --write minor
+run_cv bump minor
+assert_eq "from=0.1.0
+to=0.2.0" "$(printf '%s\n' "$OUT" | grep -E '^[a-z_]+=')" "bump tras --write: salida"
+assert_eq "version: 1.1.0
+appVersion: \"0.2.0\"" "$(grep -E '^(version|appVersion)' chart/Chart.yaml)" "bump tras --write: chart 1.1.0 y appVersion 0.2.0"
+assert_eq " M chart/Chart.yaml
+ M pom.xml" "$(git status --porcelain)" "bump tras --write: cambios sin commitear"
+assert_contains "$OUT" "+version: 1.1.0" "bump tras --write: la diff incluye la versión del chart"
+
 finish

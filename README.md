@@ -4,7 +4,7 @@ Skills para agentes de código (Claude Code, Codex, OpenCode y otros) que ayudan
 
 | Skill | Qué hace |
 |---|---|
-| `bump-app-version` | Sube la versión de la app (pom, gradle, npm, pnpm) y alinea `appVersion` de `Chart.yaml`. Solo en la rama de desarrollo. No commitea. |
+| `bump-app-version` | Sube la versión de la app (pom, gradle, npm, pnpm), alinea `appVersion` de `Chart.yaml` y, si el chart ya fue liberado, deja la siguiente versión del chart. Solo en la rama de desarrollo. No commitea. |
 | `deploy-test` | Crea y pushea el tag `x.y.z-rc.n` (despliega a test). No corre en `main`. |
 | `deploy-prod` | Integra `develop` en `main` por MR y crea el tag `x.y.z` en `main` (habilita prod). Puede salir sin RC previo. |
 | `show-versioning-flow` | Muestra en la terminal el flujo de ramas, versionado y tags: qué pasa con un push a una feature o a `develop`, con un tag RC y con un tag final, y desde qué rama sale cada uno. No cambia nada. |
@@ -39,7 +39,7 @@ Desde la raíz del proyecto, pedile al agente la skill (en Claude Code: `/cephal
 
 ### Subir la versión de la app
 
-En la rama de desarrollo: sube la versión en `pom.xml`, `build.gradle` o `package.json`, alinea `appVersion` de `Chart.yaml` y deja los cambios sin commitear.
+En la rama de desarrollo: sube la versión en `pom.xml`, `build.gradle` o `package.json` y alinea `appVersion` de `Chart.yaml`. Si el chart ya fue liberado (su `version` coincide con un tag), también deja en `Chart.yaml` la siguiente versión del chart (te pregunta el tipo): así develop publica `x.y.z-develop-<sha>` por delante del último release, y `deploy-prod` usa esa versión. Deja los cambios sin commitear.
 
 ![bump-app-version](docs/img/bump-app-version.svg)
 
@@ -80,6 +80,14 @@ En la terminal sale así (texto, para que se lea igual en cualquier agente):
  [2] push a develop    develop                imagen x.y.z-develop + chart        dev (auto)
  [3] tag x.y.z-rc.n    cualquiera menos main  imagen x.y.z (o la reusa) + chart   dev auto, test manual
  [4] tag x.y.z         main                   imagen x.y.z (o la reusa) + chart   dev auto, test y prod manual
+
+ Bump de versión (bump-app-version, en develop; no commitea)
+  - Cuándo: al cambiar código, si la versión de la app ya se usó en un tag (RC o final).
+  - Un solo bump por ciclo; un fix durante un RC también lleva bump.
+  - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.
+  - No lleva bump: cambios solo en el chart, la documentación o los tests.
+  - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).
+  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-prod usa esa versión.
 
  Estás en develop: en develop se sube la versión (bump-app-version), se crea el RC (deploy-test) y se arranca deploy-prod.
 

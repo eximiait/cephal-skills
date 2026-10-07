@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-10-07
+
+- `bump-app-version` también deja en `Chart.yaml` la siguiente versión del chart cuando la actual ya fue liberada (pregunta el tipo): develop publicaba `1.0.0-develop-<sha>` aun después de liberar la 1.0.0, que por semver es anterior al release; ahora publica `1.1.0-develop-<sha>` y `deploy-prod` usa esa versión sin preguntar.
+- Nuevo `chart-prep --write [tipo]`: escribe la versión del chart sin commitear (lo usa la skill; el diff lo muestra el `bump`).
+- `flow` (y la skill `show-versioning-flow`) explica cuándo hacer el bump de versión: al cambiar código si la versión de la app ya se usó en un tag, un solo bump por ciclo, qué archivos sube, qué cambios no lo necesitan y que la versión del chart no se sube con el bump (es el tag).
+
 ## 0.4.0 - 2026-10-06
 
 - Nueva skill `show-versioning-flow` (`/cephal:show-versioning-flow`): muestra en la terminal, en ASCII, el flujo de ramas y tags: qué pasa con un push a una feature o a `develop`, con un tag RC y con un tag final, y desde qué rama sale cada uno. Usa las ramas configuradas y marca el estado del repo (último final, RC abierto, rama actual).

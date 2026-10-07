@@ -33,6 +33,14 @@ EXPECTED=$(cat <<'TXT'
  [3] tag x.y.z-rc.n    cualquiera menos main  imagen x.y.z (o la reusa) + chart   dev auto, test manual
  [4] tag x.y.z         main                   imagen x.y.z (o la reusa) + chart   dev auto, test y prod manual
 
+ Bump de versión (bump-app-version, en develop; no commitea)
+  - Cuándo: al cambiar código, si la versión de la app ya se usó en un tag (RC o final).
+  - Un solo bump por ciclo; un fix durante un RC también lleva bump.
+  - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.
+  - No lleva bump: cambios solo en el chart, la documentación o los tests.
+  - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).
+  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-prod usa esa versión.
+
  Estás en develop: en develop se sube la versión (bump-app-version), se crea el RC (deploy-test) y se arranca deploy-prod.
 
  Reglas
@@ -43,6 +51,8 @@ EXPECTED=$(cat <<'TXT'
 TXT
 )
 assert_eq "$EXPECTED" "$OUT" "flow: salida exacta"
+assert_contains "$OUT" "Un solo bump por ciclo; un fix durante un RC también lleva bump." "flow: explica cuándo hacer el bump"
+assert_contains "$OUT" "el bump también deja en Chart.yaml la siguiente" "flow: el bump deja la próxima versión del chart"
 assert_eq "" "$(printf '%s' "$OUT" | grep -n '	' )" "flow: sin tabulaciones"
 
 # estado de tags: último final y RC abierto en el encabezado
