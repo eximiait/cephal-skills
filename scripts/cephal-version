@@ -713,6 +713,16 @@ cmd_bump() {
   else
     bp_to=$(semver_bump "$bp_from" "$bp_arg") || exit 1
   fi
+  # La imagen x.y.z se crea en el primer tag que la usa y después se reutiliza: una versión que ya fue tag
+  # (final o RC) tiene imagen, y se desplegaría código viejo. Los tags se leen de origin, no de la copia local.
+  bp_err=$(git fetch --tags origin 2>&1) || die "no se pudo consultar origin: $bp_err"
+  bp_base=${bp_to%-SNAPSHOT}
+  bp_esc=$(printf '%s' "$bp_base" | sed 's/\./\\./g')
+  bp_used=$(git tag --list | grep -E "^$bp_esc(-rc\.[0-9]+)?\$" | head -n 1)
+  if [ -n "$bp_used" ]; then
+    bp_top=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$' | sed 's/-rc\..*//' | max_semver)
+    die "la versión $bp_base ya fue tag ($bp_used): su imagen existe y se reutilizaría con código viejo; usá una mayor al último tag, por ejemplo $(semver_bump "$bp_top" patch)"
+  fi
   set_version "$bp_to"
   set_chart_app_version "$bp_to"
   kv from "$bp_from"
@@ -1052,6 +1062,7 @@ cmd_flow() {
   printf ' Bump de versión (bump-app-version, en %s; no commitea)\n' "$fl_d"
   printf '  - Cuándo: al cambiar código, si la versión de la app ya se usó en un tag (RC o final).\n'
   printf '  - Un solo bump por ciclo; un fix durante un RC también lleva bump.\n'
+  printf '  - La versión nueva no puede haber sido tag antes (final o RC): su imagen ya existe y se reutilizaría; el bump lo verifica contra origin.\n'
   printf '  - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.\n'
   printf '  - No lleva bump: cambios solo en el chart, la documentación o los tests.\n'
   printf '  - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).\n'

@@ -54,6 +54,64 @@ git checkout -q -B main
 run_cv bump patch
 assert_eq 0 "$RC" "con DEVELOP_BRANCH=main, bump en main funciona"
 
+# versión que ya fue tag: su imagen existe (modelo anterior: la imagen llevaba el tag del chart)
+old_pom() {
+  setup
+  sed -i 's#1.3.1-SNAPSHOT#1.0.0#' pom.xml
+  sed -i 's#1.3.1-SNAPSHOT#1.0.0#' chart/Chart.yaml
+  commit_all "pom atrasado"; git push -q
+}
+old_pom
+git tag 1.1.0; git tag 1.4.14; git push -q --tags
+run_cv bump minor
+assert_eq 1 "$RC" "bump a una versión ya tag: falla"
+assert_contains "$ERRO" "la versión 1.1.0 ya fue tag (1.1.0)" "bump a una versión ya tag: mensaje"
+assert_contains "$ERRO" "por ejemplo 1.4.15" "bump a una versión ya tag: sugiere la siguiente al mayor tag"
+assert_eq "" "$(git status --porcelain)" "bump a una versión ya tag: no modifica archivos"
+run_cv bump 1.4.15
+assert_eq "from=1.0.0
+to=1.4.15" "$(kvonly)" "bump explícito a una versión libre"
+
+# solo existe un RC de esa base
+old_pom
+git tag 1.1.0-rc.2; git push -q --tags
+run_cv bump minor
+assert_eq 1 "$RC" "bump a una versión con RC: falla"
+assert_contains "$ERRO" "ya fue tag (1.1.0-rc.2)" "bump a una versión con RC: mensaje"
+
+# el tag solo está en origin (otro dev lo creó): el bump hace fetch antes de validar
+old_pom
+git clone -q "$T/origin.git" "$T/otro"
+git -C "$T/otro" tag 1.1.0
+git -C "$T/otro" push -q origin 1.1.0
+assert_eq "" "$(git tag --list 1.1.0)" "tag remoto: la copia local no lo tiene"
+run_cv bump minor
+assert_eq 1 "$RC" "tag solo en origin: el bump lo detecta"
+assert_contains "$ERRO" "la versión 1.1.0 ya fue tag" "tag solo en origin: mensaje"
+
+# SNAPSHOT: se valida la base sin el sufijo
+setup
+sed -i 's#1.3.1-SNAPSHOT#1.0.0-SNAPSHOT#' pom.xml
+commit_all "pom"; git push -q
+git tag 1.1.0; git push -q --tags
+run_cv bump minor
+assert_eq 1 "$RC" "bump a x.y.z-SNAPSHOT con tag x.y.z: falla"
+
+# otro tag que solo se parece (11.1.0, 1.1.00) no cuenta
+old_pom
+git tag 11.1.0; git push -q --tags
+run_cv bump minor
+assert_eq "from=1.0.0
+to=1.1.0" "$(kvonly)" "tag 11.1.0 no bloquea la 1.1.0"
+
+# sin poder consultar origin no se asume que la versión está libre
+old_pom
+git remote set-url origin "$T/no-existe.git"
+run_cv bump minor
+assert_eq 1 "$RC" "origin inaccesible: falla"
+assert_contains "$ERRO" "no se pudo consultar origin" "origin inaccesible: mensaje"
+assert_eq "" "$(git status --porcelain)" "origin inaccesible: no modifica archivos"
+
 # release-prep
 setup
 run_cv release-prep

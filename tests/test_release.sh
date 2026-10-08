@@ -1,7 +1,7 @@
 . "$(dirname "$0")/lib.sh"
 CHK="$ROOT/scripts/check-version.sh"
 
-sh "$CHK" v0.4.1 >/dev/null 2>&1
+sh "$CHK" v0.4.2 >/dev/null 2>&1
 assert_eq 0 "$?" "tag igual a plugin.json y marketplace.json"
 sh "$CHK" v0.2.0 >/dev/null 2>&1
 assert_eq 1 "$?" "tag distinto falla"
@@ -10,8 +10,8 @@ assert_eq 1 "$?" "tag distinto falla"
 D=$(mktemp -d)
 mkdir -p "$D/.claude-plugin"
 cp "$ROOT/.claude-plugin/plugin.json" "$D/.claude-plugin/"
-sed 's/"version": "0.4.1"/"version": "0.0.9"/' "$ROOT/.claude-plugin/marketplace.json" > "$D/.claude-plugin/marketplace.json"
-OUT=$(CEPHAL_SKILLS_ROOT="$D" sh "$CHK" v0.4.1 2>&1); RC=$?
+sed 's/"version": "0.4.2"/"version": "0.0.9"/' "$ROOT/.claude-plugin/marketplace.json" > "$D/.claude-plugin/marketplace.json"
+OUT=$(CEPHAL_SKILLS_ROOT="$D" sh "$CHK" v0.4.2 2>&1); RC=$?
 assert_eq 1 "$RC" "marketplace.json desalineado falla"
 assert_contains "$OUT" "marketplace.json" "marketplace.json desalineado: nombra el archivo"
 

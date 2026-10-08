@@ -16,7 +16,7 @@ Al dev mostrale solo las preguntas, una línea por resultado y, si un comando tr
 2. Si `branch` es distinto de `develop_branch`: `Estás en <branch>; el bump se hace en <develop_branch>.` y terminá.
 3. Preguntá: `¿patch, minor o major? (versión actual: <version>)`.
 4. `CV chart-prep --write`. Si falla con `falta el tipo`, preguntá `¿patch, minor o major para el chart? (último release: <last_final>)` y repetilo con el tipo; con otro error, mostralo y terminá. Con `changed=yes`, informá `Chart: <version>`; con `changed=no` o `chart=skipped`, no digas nada del chart.
-5. `CV bump <tipo>`. Mostrá la diff y `<from> → <to>`.
+5. `CV bump <tipo>`. Mostrá la diff y `<from> → <to>`. Si falla con `ya fue tag`, esa versión ya tiene imagen publicada y se reutilizaría con código viejo: mostrá el error, preguntá `¿Qué versión x.y.z usamos? (sugerida: <la del error>)` y repetí con `CV bump <x.y.z>`.
 6. Cerrá con una línea: `Listo. Commiteá los cambios.`
 
 No commitees ni pushees: eso lo decide el dev.

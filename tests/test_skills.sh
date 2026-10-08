@@ -62,7 +62,7 @@ sh scripts/sync.sh --check >/dev/null 2>&1; assert_eq 0 "$?" "sync: restaura las
 
 # manifiestos
 assert_eq yes "$(grep -q '"name": "cephal"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: name"
-assert_eq yes "$(grep -q '"version": "0.4.1"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.4.1"
+assert_eq yes "$(grep -q '"version": "0.4.2"' .claude-plugin/plugin.json && echo yes || echo no)" "plugin.json: version 0.4.2"
 assert_eq yes "$(grep -q '"name": "cephal-skills"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: name"
 assert_eq yes "$(grep -q '"source": "./"' .claude-plugin/marketplace.json && echo yes || echo no)" "marketplace.json: source"
 if command -v node >/dev/null 2>&1; then
@@ -112,6 +112,7 @@ assert_eq yes "$(grep -qF 'show-versioning-flow' README.md && echo yes || echo n
 # bump-app-version: deja también la versión del chart (chart-prep --write, sin commitear)
 assert_eq yes "$(grep -qF 'chart-prep --write' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: usa chart-prep --write"
 assert_eq yes "$(grep -qF 'falta el tipo' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: pregunta el tipo del chart cuando hace falta"
+assert_eq yes "$(grep -qF 'ya fue tag' skills/bump-app-version/SKILL.md && echo yes || echo no)" "bump-app-version: maneja la versión que ya fue tag"
 assert_eq "" "$(grep -E 'chart-prep --apply|tag-push|push-branch' skills/bump-app-version/SKILL.md)" "bump-app-version: no commitea ni pushea"
 
 finish

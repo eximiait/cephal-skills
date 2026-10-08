@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 - 2026-10-08
+
+- `bump` ya no deja subir la app a una versión que ya fue tag (final o RC). La imagen `x.y.z` se crea en el primer tag que la usa y después se reutiliza; en proyectos que venían del modelo anterior, donde la imagen llevaba el tag del chart, un `minor` desde un pom atrasado (1.0.0 → 1.1.0) hubiera desplegado en silencio la imagen vieja 1.1.0. Ahora falla con `ya fue tag` y sugiere la siguiente al mayor tag.
+- Antes de validar, `bump` hace `git fetch --tags origin`, así que ve los tags que crearon otros devs; si no puede consultar origin, falla en lugar de asumir que la versión está libre.
+- `bump-app-version` y `flow` explican el caso y la skill pide una versión explícita.
+
 ## 0.4.1 - 2026-10-07
 
 - `bump-app-version` también deja en `Chart.yaml` la siguiente versión del chart cuando la actual ya fue liberada (pregunta el tipo): develop publicaba `1.0.0-develop-<sha>` aun después de liberar la 1.0.0, que por semver es anterior al release; ahora publica `1.1.0-develop-<sha>` y `deploy-prod` usa esa versión sin preguntar.

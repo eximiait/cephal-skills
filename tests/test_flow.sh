@@ -36,6 +36,7 @@ EXPECTED=$(cat <<'TXT'
  Bump de versión (bump-app-version, en develop; no commitea)
   - Cuándo: al cambiar código, si la versión de la app ya se usó en un tag (RC o final).
   - Un solo bump por ciclo; un fix durante un RC también lleva bump.
+  - La versión nueva no puede haber sido tag antes (final o RC): su imagen ya existe y se reutilizaría; el bump lo verifica contra origin.
   - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.
   - No lleva bump: cambios solo en el chart, la documentación o los tests.
   - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).

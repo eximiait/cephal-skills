@@ -1,7 +1,7 @@
 {
   "name": "cephal",
   "description": "Skills de la familia cephal: versionado de la app y despliegue por tags a test y prod",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": {
     "name": "EximiaIT",
     "url": "https://github.com/eximiait"
