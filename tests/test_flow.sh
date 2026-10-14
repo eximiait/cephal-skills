@@ -40,13 +40,13 @@ EXPECTED=$(cat <<'TXT'
   - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.
   - No lleva bump: cambios solo en el chart, la documentación o los tests.
   - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).
-  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-prod usa esa versión.
+  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-test y deploy-prod usan esa versión.
 
  Estás en develop: en develop se sube la versión (bump-app-version), se crea el RC (deploy-test) y se arranca deploy-prod.
 
  Reglas
   - La versión de la app se sube en develop (bump-app-version); un tag no puede llevar -SNAPSHOT.
-  - La versión del chart es el tag de Git; deploy-prod la deja en Chart.yaml y viaja por el MR.
+  - La versión del chart sale de Chart.yaml (la deja bump-app-version): el RC es x.y.z-rc.n y el final x.y.z, con la misma base.
   - El tag final sale solo de main y después del MR; el RC, de cualquier rama menos main.
   - Los tags no se mueven ni se pisan; nada se pushea sin tu confirmación.
 TXT

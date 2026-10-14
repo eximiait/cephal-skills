@@ -120,4 +120,53 @@ rm -rf "$T/other"; git clone -q "$T/origin.git" "$T/other"
 run_cv next-tag prod
 assert_eq "tag=2.5.0" "$(nohead)" "release/2.5.0 en el remoto no bloquea 2.5.0"
 
+# ---------- test con Chart.yaml: la base del RC es su version, solo se calcula el n ----------
+on_develop_with_chart() { # $1 = version en chart/Chart.yaml
+  new_repo
+  git tag 2.4.0
+  mkdir -p chart; printf 'name: demo\nversion: %s\n' "$1" > chart/Chart.yaml
+  commit_all "chart $1"
+}
+on_develop_with_chart 2.5.0
+run_cv next-tag test
+assert_eq "tag=2.5.0-rc.1" "$(nohead)" "test con Chart.yaml 2.5.0: primer RC sin pedir tipo"
+run_cv next-tag test major
+assert_eq "tag=2.5.0-rc.1" "$(nohead)" "test con Chart.yaml: el tipo se ignora"
+git tag 2.5.0-rc.1
+run_cv next-tag test
+assert_eq "tag=2.5.0-rc.2" "$(nohead)" "test con Chart.yaml y RC de esa base: sigue con rc.2"
+
+on_develop_with_chart 2.5.0
+git tag 2.4.1-rc.3
+run_cv next-tag test
+assert_eq "tag=2.5.0-rc.1" "$(nohead)" "test con Chart.yaml: un RC abierto de otra base no manda"
+
+git checkout -q -b feature/x
+run_cv next-tag test
+assert_eq "tag=2.5.0-rc.1" "$(nohead)" "test con Chart.yaml desde una feature"
+git checkout -q develop
+
+on_develop_with_chart 2.4.0
+run_cv next-tag test
+assert_eq 1 "$RC" "test con Chart.yaml ya liberado: falla"
+assert_contains "$ERRO" "ya existe el tag 2.4.0" "test con Chart.yaml ya liberado: mensaje"
+assert_contains "$ERRO" "bump-app-version" "test con Chart.yaml ya liberado: indica bump-app-version"
+
+on_develop_with_chart 2.3.5
+run_cv next-tag test
+assert_eq 1 "$RC" "test con Chart.yaml menor que el último final: falla"
+assert_contains "$ERRO" "no es mayor que el último final (2.4.0)" "test con Chart.yaml menor: mensaje"
+
+on_develop_with_chart 0.0.0-SNAPSHOT
+run_cv next-tag test
+assert_eq 1 "$RC" "test con Chart.yaml no x.y.z: falla"
+assert_contains "$ERRO" "no es x.y.z" "test con Chart.yaml no x.y.z: mensaje"
+
+on_develop_with_chart 2.5.0
+git clone -q "$T/origin.git" "$T/other"
+(cd "$T/other" && git tag 2.5.0 && git push -q origin 2.5.0)
+run_cv next-tag test
+assert_eq 1 "$RC" "test con Chart.yaml cuyo final existe solo en el remoto: falla"
+assert_contains "$ERRO" "ya existe el tag 2.5.0" "test con final solo en el remoto: mensaje"
+
 finish

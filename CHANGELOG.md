@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-10-14
+
+- `deploy-test`: con `Chart.yaml`, la base del RC es su `version`, igual que ya hace `deploy-prod` con el tag final. Solo se calcula el `n` (`2.5.0-rc.1`, `2.5.0-rc.2`, …) y ya no se pregunta patch/minor/major. Esa decisión se toma antes, en develop, con `bump-app-version`. Va con el cambio en gitlab-pipelines: `helm-publish` toma la versión del chart de `Chart.yaml`, la publica como `<version>-rc.n` en un RC y falla si la base del tag no coincide.
+- `next-tag test` falla si la `version` de `Chart.yaml` ya fue liberada, no es x.y.z o no es mayor que el último final, e indica subirla con `bump-app-version`. Sin `Chart.yaml`, sigue como antes (RC abierto o tipo).
+- `context` informa `chart_version` (`none` sin `Chart.yaml`).
+- `flow` y README: la versión del chart sale de `Chart.yaml`; el RC y el final comparten base.
+
 ## 0.4.2 - 2026-10-08
 
 - `bump` ya no deja subir la app a una versión que ya fue tag (final o RC). La imagen `x.y.z` se crea en el primer tag que la usa y después se reutiliza; en proyectos que venían del modelo anterior, donde la imagen llevaba el tag del chart, un `minor` desde un pom atrasado (1.0.0 → 1.1.0) hubiera desplegado en silencio la imagen vieja 1.1.0. Ahora falla con `ya fue tag` y sugiere la siguiente al mayor tag.

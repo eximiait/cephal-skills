@@ -571,6 +571,14 @@ cmd_next_tag() {
     fi
     return 0
   fi
+  # Con Chart.yaml, la base del RC también es su version (la deja bump-app-version); acá solo se calcula el n.
+  # El pipeline valida que la base del tag coincida con Chart.yaml y publica el chart como <version>-rc.n.
+  if [ "$nt_env" = test ] && nt_chart=$(chart_version_get); then
+    nt_err=$(chart_version_problem "$nt_chart")
+    [ -z "$nt_err" ] || die "$nt_err; la versión del RC sale de Chart.yaml: subila en develop con bump-app-version"
+    kv tag "$nt_chart-rc.$(($(max_rc_n "$nt_chart") + 1))"
+    return 0
+  fi
   nt_open=$(open_rc_base)
   if [ -n "$nt_open" ]; then
     nt_n=$(max_rc_n "$nt_open")
@@ -614,6 +622,7 @@ cmd_context() {
   cx_final=$(last_final)
   [ "$cx_final" = "0.0.0" ] && cx_final=none
   cx_open=$(open_rc_base)
+  cx_chart=$(chart_version_get) || cx_chart=none
   kv branch "$(current_branch)"
   kv develop_branch "$(develop_branch)"
   kv main_branch "$(main_branch)"
@@ -622,6 +631,7 @@ cmd_context() {
   kv chart_dir "$(chart_dir)"
   kv last_final "$cx_final"
   kv open_rc "${cx_open:-none}"
+  kv chart_version "${cx_chart:-(vacía)}"
 }
 
 # Origin de git como "host<TAB>ruta<TAB>puerto-web" (puerto solo si es https/http); vacío si no es remoto con host.
@@ -1066,7 +1076,7 @@ cmd_flow() {
   printf '  - Qué sube: el archivo del lenguaje (pom, gradle, package.json) y appVersion de Chart.yaml, juntos.\n'
   printf '  - No lleva bump: cambios solo en el chart, la documentación o los tests.\n'
   printf '  - Si la versión del chart ya está liberada, el bump también deja en Chart.yaml la siguiente (pregunta el tipo).\n'
-  printf '  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-prod usa esa versión.\n'
+  printf '  - Así dev publica el chart como x.y.z-develop-sha por delante del último release, y deploy-test y deploy-prod usan esa versión.\n'
   printf '\n'
   case "$fl_cur" in
     "$fl_m") fl_here="en $fl_m solo se crea el tag x.y.z (deploy-prod); deploy-test no corre acá" ;;
@@ -1076,7 +1086,7 @@ cmd_flow() {
   printf ' Estás en %s: %s.\n\n' "$fl_cur" "$fl_here"
   printf ' Reglas\n'
   printf '  - La versión de la app se sube en %s (bump-app-version); un tag no puede llevar -SNAPSHOT.\n' "$fl_d"
-  printf '  - La versión del chart es el tag de Git; deploy-prod la deja en Chart.yaml y viaja por el MR.\n'
+  printf '  - La versión del chart sale de Chart.yaml (la deja bump-app-version): el RC es x.y.z-rc.n y el final x.y.z, con la misma base.\n'
   printf '  - El tag final sale solo de %s y después del MR; el RC, de cualquier rama menos %s.\n' "$fl_m" "$fl_m"
   printf '  - Los tags no se mueven ni se pisan; nada se pushea sin tu confirmación.\n'
 }

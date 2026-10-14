@@ -17,8 +17,8 @@ Al dev mostrale solo las preguntas, una línea por resultado y, si un comando tr
    - Destacá: **⚠️ La versión tiene -SNAPSHOT: así no se puede pasar a testing** (el pipeline falla en un tag).
    - Proponé quitarlo (`<release>`) en el archivo del lenguaje y en `appVersion`, con el commit `Release app <release>`, y preguntá si lo aplicás.
    - Si acepta: `CV release-prep --apply`. Si no, terminá.
-3. Si `open_rc` es `none`, preguntá `¿patch, minor o major sobre <last_final>?`. Con un RC abierto no preguntes.
-4. `CV next-tag test [<tipo>]` devuelve `tag` y `head`.
+3. Con Chart.yaml (`chart_version` distinto de `none`) no preguntes el tipo: la base del RC es esa versión. Sin Chart.yaml, si `open_rc` es `none`, preguntá `¿patch, minor o major sobre <last_final>?`; con un RC abierto no preguntes.
+4. `CV next-tag test [<tipo>]` devuelve `tag` y `head`. Si falla y el error menciona `bump-app-version` (la versión de Chart.yaml ya fue liberada o no es x.y.z), mostralo, indicá que la versión se sube en `develop_branch` con `/cephal:bump-app-version` y terminá; con otro error, mostralo y terminá.
 5. Mostrá `Tag <tag> sobre <head> (<branch>)`; si hubo commit de release, aclará que se pushea junto con el tag. Pedí confirmación explícita.
 6. Solo con el sí: `CV tag-push <tag>` e informá `pushed=<tag>`. Sin el sí no pushees: el commit de release, si lo hubo, queda local.
 

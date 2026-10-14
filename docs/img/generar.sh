@@ -62,12 +62,13 @@ D=$(sh "$CV" bump minor | diffpart)
   printf '%s\n' "$D" | sed 's/^/D|/'; printf 'A|0.1.0 → 0.2.0. Listo. Commiteá los cambios.\n'; } | render "$OUTDIR/bump-app-version.svg" "bump-app-version"
 
 # deploy-test (con -SNAPSHOT)
-repo 2.0.0-SNAPSHOT 1.0.0; git tag 1.0.0
+repo 2.0.0-SNAPSHOT 1.1.0; git tag 1.0.0
 D=$(sh "$CV" release-prep --apply | diffpart); H=$(git rev-parse --short HEAD)
+RC=$(sh "$CV" next-tag test | sed -n 's/^tag=//p')
 { printf 'P|> /cephal:deploy-test\n'; printf 'A|⚠️ La versión tiene -SNAPSHOT: así no se puede pasar a testing.\n'
   printf 'A|¿Quito -SNAPSHOT (2.0.0) con el commit «Release app 2.0.0»?\n'; printf 'P|> sí\n'
-  printf '%s\n' "$D" | sed 's/^/D|/'; printf 'A|¿patch, minor o major sobre 1.0.0?\n'; printf 'P|> minor\n'
-  printf 'A|Tag 1.1.0-rc.1 sobre %s (develop). ¿Confirmás el push?\n' "$H"; printf 'P|> sí\n'; printf 'A|pushed=1.1.0-rc.1\n'; } | render "$OUTDIR/deploy-test.svg" "deploy-test"
+  printf '%s\n' "$D" | sed 's/^/D|/'
+  printf 'A|Tag %s sobre %s (develop). ¿Confirmás el push?\n' "$RC" "$H"; printf 'P|> sí\n'; printf 'A|pushed=%s\n' "$RC"; } | render "$OUTDIR/deploy-test.svg" "deploy-test"
 
 # deploy-prod (versión del chart decidida en develop)
 repo 2.0.0 1.0.0; git tag 1.0.0; git tag 1.1.0-rc.1

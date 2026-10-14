@@ -18,11 +18,17 @@ lang=maven
 version=1.3.1-SNAPSHOT
 chart_dir=chart
 last_final=2.4.0
-open_rc=none" "$OUT" "context: valores"
+open_rc=none
+chart_version=none" "$OUT" "context: valores"
 
 git tag 2.5.0-rc.1
 run_cv context
 assert_contains "$OUT" "open_rc=2.5.0" "context: RC abierto"
+
+mkdir -p chart; printf 'name: demo\nversion: "2.6.0"\n' > chart/Chart.yaml
+run_cv context
+assert_contains "$OUT" "chart_version=2.6.0" "context: version de Chart.yaml"
+rm -rf chart
 
 mkdir sub
 (cd sub && ERRF=$(mktemp) && OUT=$(sh "$CV" context 2>"$ERRF"); case "$OUT" in *"lang=maven"*) echo ok > "$T/sub.ok" ;; esac)
