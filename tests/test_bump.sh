@@ -13,6 +13,8 @@ appVersion: "1.3.1-SNAPSHOT"'
 }
 appv() { grep '^appVersion' chart/Chart.yaml; }
 kvonly() { printf '%s\n' "$OUT" | grep -E '^[a-z_]+='; }
+# sed -i no es portable: BSD sed (macOS) exige el sufijo del backup
+sed_i() { sed "$1" "$2" > "$2.tmp" && mv "$2.tmp" "$2"; }
 
 # bump patch
 setup
@@ -57,8 +59,8 @@ assert_eq 0 "$RC" "con DEVELOP_BRANCH=main, bump en main funciona"
 # versión que ya fue tag: su imagen existe (modelo anterior: la imagen llevaba el tag del chart)
 old_pom() {
   setup
-  sed -i 's#1.3.1-SNAPSHOT#1.0.0#' pom.xml
-  sed -i 's#1.3.1-SNAPSHOT#1.0.0#' chart/Chart.yaml
+  sed_i 's#1.3.1-SNAPSHOT#1.0.0#' pom.xml
+  sed_i 's#1.3.1-SNAPSHOT#1.0.0#' chart/Chart.yaml
   commit_all "pom atrasado"; git push -q
 }
 old_pom
@@ -91,7 +93,7 @@ assert_contains "$ERRO" "la versión 1.1.0 ya fue tag" "tag solo en origin: mens
 
 # SNAPSHOT: se valida la base sin el sufijo
 setup
-sed -i 's#1.3.1-SNAPSHOT#1.0.0-SNAPSHOT#' pom.xml
+sed_i 's#1.3.1-SNAPSHOT#1.0.0-SNAPSHOT#' pom.xml
 commit_all "pom"; git push -q
 git tag 1.1.0; git push -q --tags
 run_cv bump minor
